@@ -1,0 +1,6 @@
+name = "engr101-queue-proxy"
+main = "src/index.js"
+compatibility_date = "2024-09-01"
+
+[observability]
+enabled = false

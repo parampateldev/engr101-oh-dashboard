@@ -1,0 +1,61 @@
+name: Deploy queue proxy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - worker/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Deploy Cloudflare Worker
+        id: deploy
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "Cloudflare secrets not set — skipping worker deploy"
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          npm install -g wrangler
+          DEPLOY_LOG=$(mktemp)
+          wrangler deploy 2>&1 | tee "$DEPLOY_LOG"
+          URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' "$DEPLOY_LOG" | tail -1)
+          if [ -z "$URL" ]; then
+            echo "Could not detect worker URL from deploy output"
+            exit 1
+          fi
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Update queue-proxy-config.js
+        if: steps.deploy.outputs.skipped != 'true'
+        run: |
+          cat > queue-proxy-config.js <<EOF
+          window.QUEUE_PROXY_URL = "${{ steps.deploy.outputs.url }}";
+          EOF
+
+      - name: Commit proxy config if changed
+        if: steps.deploy.outputs.skipped != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add queue-proxy-config.js
+          git diff --staged --quiet && echo "No config changes" && exit 0
+          git commit -m "Update queue-proxy-config.js"
+          git push

@@ -1,4 +1,5 @@
 const REFRESH_MS = 15000;
+const GITHUB_PAGES_REFRESH_MS = 5000;
 const TICK_MS = 1000;
 const TZ = "America/Detroit";
 const QUEUE_API =
@@ -797,21 +798,39 @@ async function fetchSchedule() {
   scheduleData = await resp.json();
 }
 
+async function fetchQueueFromProxy() {
+  const proxy = window.QUEUE_PROXY_URL;
+  if (!proxy) throw new Error("No queue proxy configured");
+  const resp = await fetch(proxy, { cache: "no-store" });
+  if (!resp.ok) throw new Error(`Proxy HTTP ${resp.status}`);
+  return resp.json();
+}
+
+async function fetchQueueFromSnapshot() {
+  const resp = await fetch(`${assetUrl("queue-snapshot.json")}?t=${Date.now()}`);
+  if (!resp.ok) throw new Error(`Snapshot HTTP ${resp.status}`);
+  return resp.json();
+}
+
 async function fetchQueue() {
   const errorEl = document.getElementById("error-state");
   try {
-    let resp;
+    let data;
     if (isGitHubPages()) {
-      resp = await fetch(`${assetUrl("queue-snapshot.json")}?t=${Date.now()}`);
+      try {
+        data = await fetchQueueFromProxy();
+      } catch {
+        data = await fetchQueueFromSnapshot();
+      }
     } else {
-      resp = await fetch("/api/queue");
+      const resp = await fetch("/api/queue");
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+      data = await resp.json();
     }
-
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP ${resp.status}`);
-    }
-    queueData = await resp.json();
+    queueData = data;
     lastUpdated = new Date();
     errorEl.hidden = true;
     render(queueData);
@@ -851,7 +870,7 @@ async function init() {
 
 init();
 if (isGitHubPages()) {
-  setInterval(fetchQueue, 8000);
+  setInterval(fetchQueue, GITHUB_PAGES_REFRESH_MS);
 } else {
   setInterval(fetchQueue, REFRESH_MS);
 }
