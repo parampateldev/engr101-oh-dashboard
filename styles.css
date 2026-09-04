@@ -763,6 +763,11 @@ tbody tr.row-helping {
   color: var(--closed);
 }
 
+.staff-login-btn[hidden],
+.staff-bar[hidden] {
+  display: none !important;
+}
+
 .staff-login-btn,
 .staff-bar {
   flex-shrink: 0;

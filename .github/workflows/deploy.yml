@@ -30,7 +30,7 @@ jobs:
           STAFF_PUBLISH_TOKEN: ${{ secrets.STAFF_PUBLISH_TOKEN }}
         run: |
           mkdir -p _site
-          cp index.html styles.css app.js staff.js schedule.json staff-overrides.json _site/
+          cp index.html styles.css app.js schedule.json staff-overrides.json _site/
           cat > _site/staff-config.js <<EOF
           window.STAFF_PUBLISH = {
             repo: "parampateldev/engr101-oh-dashboard",
