@@ -1,52 +1,37 @@
-name: Deploy to GitHub Pages
+name: Build site config
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - queue-snapshot.json
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
+  contents: write
 
 jobs:
-  deploy:
+  build-config:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build site
+      - name: Write staff-config.js
         env:
           STAFF_PUBLISH_TOKEN: ${{ secrets.STAFF_PUBLISH_TOKEN }}
         run: |
-          mkdir -p _site
-          cp index.html styles.css app.js schedule.json staff-overrides.json _site/
-          cat > _site/staff-config.js <<EOF
+          cat > staff-config.js <<EOF
           window.STAFF_PUBLISH = {
             repo: "parampateldev/engr101-oh-dashboard",
             token: "${STAFF_PUBLISH_TOKEN}"
           };
           EOF
-          curl -fsSL \
-            "https://eecsoh.eecs.umich.edu/api/queues/1xHcWfn2KW5HHly5Y3rLA2g5kW2" \
-            -o _site/queue-snapshot.json
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Commit config if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add staff-config.js
+          git diff --staged --quiet && echo "No config changes" && exit 0
+          git commit -m "Update staff-config.js"
+          git push

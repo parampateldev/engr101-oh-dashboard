@@ -851,7 +851,7 @@ async function init() {
 
 init();
 if (isGitHubPages()) {
-  setInterval(fetchQueue, 15000);
+  setInterval(fetchQueue, 8000);
 } else {
   setInterval(fetchQueue, REFRESH_MS);
 }
