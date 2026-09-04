@@ -37,8 +37,8 @@ function setRefreshNote() {
   const queueNote = document.getElementById("queue-note");
   if (queueNote) {
     queueNote.textContent = isGitHubPages()
-      ? "Uniqnames not available on public dashboard"
-      : "Student names are on eecsoh";
+      ? "Match your place # or join time from eecsoh"
+      : "Names visible when staff session is connected";
   }
 }
 
@@ -590,6 +590,36 @@ function formatClock(isoString) {
   });
 }
 
+function formatRelativeJoin(isoString) {
+  const seconds = waitSecondsSince(isoString);
+  if (seconds < 45) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  const remMinutes = minutes % 60;
+  return remMinutes ? `${hours}h ${remMinutes}m ago` : `${hours}h ago`;
+}
+
+function sortQueueEntries(queue) {
+  return [...queue].sort((a, b) => {
+    const aPinned = Boolean(a.pinned);
+    const bPinned = Boolean(b.pinned);
+    if (aPinned !== bPinned) return aPinned ? -1 : 1;
+
+    const aHelping = Boolean(a.helping);
+    const bHelping = Boolean(b.helping);
+    if (aHelping !== bHelping) return aHelping ? -1 : 1;
+
+    const aPriority = a.priority ?? 0;
+    const bPriority = b.priority ?? 0;
+    if (aPriority !== bPriority) return bPriority - aPriority;
+
+    const aId = a.id ?? "";
+    const bId = b.id ?? "";
+    return aId < bId ? -1 : aId > bId ? 1 : 0;
+  });
+}
+
 function waitSecondsSince(joinedAt) {
   return (Date.now() - new Date(joinedAt).getTime()) / 1000;
 }
@@ -692,35 +722,26 @@ function estimateWaitSeconds(positionIndex, cooldown, staffCount, helpingCount) 
 }
 
 function buildStudents(queue, cooldown, staffCount, helpingCount) {
-  const waiting = queue.filter((entry) => !entry.helping);
-  const helping = queue.filter((entry) => entry.helping);
+  const sorted = sortQueueEntries(queue);
+  const helpingActive = sorted.filter((entry) => entry.helping).length;
 
-  const rows = [];
+  return sorted.map((entry, index) => {
+    const isHelping = Boolean(entry.helping);
+    const waitingIndex = sorted.slice(0, index).filter((item) => !item.helping).length;
 
-  helping.forEach((entry, index) => {
-    rows.push({
+    return {
       position: index + 1,
       uniqname: getUniqname(entry),
       joinedAt: entry.id_timestamp,
       waitSeconds: waitSecondsSince(entry.id_timestamp),
-      estimatedSeconds: 0,
-      status: "helping",
-    });
+      estimatedSeconds: isHelping
+        ? 0
+        : estimateWaitSeconds(waitingIndex, cooldown, staffCount, helpingActive),
+      status: isHelping ? "helping" : "waiting",
+      pinned: Boolean(entry.pinned),
+      priority: entry.priority ?? 0,
+    };
   });
-
-  waiting.forEach((entry, index) => {
-    const position = helping.length + index + 1;
-    rows.push({
-      position,
-      uniqname: getUniqname(entry),
-      joinedAt: entry.id_timestamp,
-      waitSeconds: waitSecondsSince(entry.id_timestamp),
-      estimatedSeconds: estimateWaitSeconds(index, cooldown, staffCount, helping.length),
-      status: "waiting",
-    });
-  });
-
-  return rows;
 }
 
 function renderStaffList(staff, slot) {
@@ -817,6 +838,14 @@ function render(data) {
   const showUniqnames = data._dashboard?.uniqnames_visible ?? false;
   setUniqnameColumnVisible(showUniqnames);
 
+  const hintEl = document.getElementById("queue-hint");
+  if (hintEl) {
+    hintEl.hidden = students.length === 0;
+    hintEl.textContent = showUniqnames
+      ? "Staff view — student names are shown when your eecsoh session is connected."
+      : "On eecsoh, your phone shows your place #. On this board, find the same number — or match the join time shown for each row.";
+  }
+
   const tbody = document.getElementById("queue-body");
   tbody.innerHTML = "";
 
@@ -832,13 +861,28 @@ function render(data) {
   students.forEach((student) => {
     const tr = document.createElement("tr");
     if (student.status === "helping") tr.classList.add("row-helping");
+    if (student.pinned) tr.classList.add("row-pinned");
+
+    const flags = [];
+    if (student.pinned) flags.push('<span class="badge pinned">Pinned</span>');
+    if (student.priority !== 0) {
+      const sign = student.priority > 0 ? "+" : "";
+      flags.push(`<span class="badge priority">Priority ${sign}${student.priority}</span>`);
+    }
+
     tr.innerHTML = `
       <td class="position">#${student.position}</td>
       ${showUniqnames ? `<td class="uniqname col-uniqname">${student.uniqname ?? "—"}</td>` : ""}
-      <td>${formatClock(student.joinedAt)}</td>
+      <td class="join-time">
+        <span class="join-clock">${formatClock(student.joinedAt)}</span>
+        <span class="join-relative" data-join="${student.joinedAt}">${formatRelativeJoin(student.joinedAt)}</span>
+      </td>
       <td class="wait-time" data-wait="${student.joinedAt}">${formatDuration(student.waitSeconds)}</td>
       <td>${student.status === "helping" ? "—" : `~${formatDuration(student.estimatedSeconds)}`}</td>
-      <td><span class="badge ${student.status}">${student.status === "helping" ? "Being helped" : "Waiting"}</span></td>
+      <td>
+        <span class="badge ${student.status}">${student.status === "helping" ? "Being helped" : "Waiting"}</span>
+        ${flags.join(" ")}
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -847,6 +891,9 @@ function render(data) {
 function tickWaitTimes() {
   document.querySelectorAll("[data-wait]").forEach((cell) => {
     cell.textContent = formatDuration(waitSecondsSince(cell.dataset.wait));
+  });
+  document.querySelectorAll("[data-join]").forEach((cell) => {
+    cell.textContent = formatRelativeJoin(cell.dataset.join);
   });
 }
 

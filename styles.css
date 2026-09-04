@@ -749,6 +749,50 @@ tbody tr.row-helping {
 .position {
   font-weight: 700;
   color: var(--accent-light);
+  font-size: 1.15rem;
+}
+
+.join-time {
+  min-width: 8.5rem;
+}
+
+.join-clock {
+  display: block;
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.join-relative {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.queue-hint {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--panel-soft-bg, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+tbody tr.row-pinned {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.badge.pinned {
+  background: rgba(255, 193, 7, 0.18);
+  color: #b8860b;
+}
+
+.badge.priority {
+  background: rgba(100, 149, 237, 0.16);
+  color: var(--accent-light);
 }
 
 .uniqname {
