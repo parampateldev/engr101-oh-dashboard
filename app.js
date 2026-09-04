@@ -29,12 +29,6 @@ function assetUrl(name) {
 }
 
 function setRefreshNote() {
-  const note = document.getElementById("refresh-note");
-  if (!note) return;
-  note.textContent = isGitHubPages()
-    ? "Queue refreshes every ~1 min on GitHub Pages"
-    : "Refreshes every 15s";
-
   const queueNote = document.getElementById("queue-note");
   if (queueNote) {
     queueNote.textContent = isGitHubPages()
