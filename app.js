@@ -1,5 +1,8 @@
 const REFRESH_MS = 15000;
 const GITHUB_PAGES_REFRESH_MS = 5000;
+const OVERRIDES_REFRESH_MS = 30000;
+const SCHEDULE_REFRESH_MS = 300000;
+const UI_REFRESH_MS = 10000;
 const TICK_MS = 1000;
 const TZ = "America/Detroit";
 const QUEUE_API =
@@ -8,6 +11,7 @@ const QUEUE_API =
 let queueData = null;
 let scheduleData = null;
 let lastUpdated = null;
+let queueFetchInFlight = false;
 
 function isGitHubPages() {
   return location.hostname.endsWith("github.io");
@@ -793,9 +797,31 @@ function tickWaitTimes() {
 
 async function fetchSchedule() {
   const url = isGitHubPages() ? assetUrl("schedule.json") : "/api/schedule";
-  const resp = await fetch(url);
+  const resp = await fetch(`${url}?t=${Date.now()}`, { cache: "no-store" });
   if (!resp.ok) throw new Error("Could not load staff schedule");
   scheduleData = await resp.json();
+}
+
+async function refreshStaffOverrides() {
+  try {
+    await fetchStaffOverrides();
+    if (queueData) render(queueData);
+  } catch {
+    /* keep showing last known overrides */
+  }
+}
+
+async function refreshSchedule() {
+  try {
+    await fetchSchedule();
+    if (queueData) render(queueData);
+  } catch {
+    /* keep showing last known schedule */
+  }
+}
+
+function refreshUIFromCache() {
+  if (queueData) render(queueData);
 }
 
 async function fetchQueueFromProxy() {
@@ -813,6 +839,9 @@ async function fetchQueueFromSnapshot() {
 }
 
 async function fetchQueue() {
+  if (queueFetchInFlight) return;
+  queueFetchInFlight = true;
+
   const errorEl = document.getElementById("error-state");
   try {
     let data;
@@ -823,7 +852,7 @@ async function fetchQueue() {
         data = await fetchQueueFromSnapshot();
       }
     } else {
-      const resp = await fetch("/api/queue");
+      const resp = await fetch("/api/queue", { cache: "no-store" });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         throw new Error(err.error || `HTTP ${resp.status}`);
@@ -835,8 +864,15 @@ async function fetchQueue() {
     errorEl.hidden = true;
     render(queueData);
   } catch (err) {
-    errorEl.hidden = false;
-    errorEl.textContent = `Could not load queue data: ${err.message}`;
+    if (queueData) {
+      errorEl.hidden = true;
+      render(queueData);
+    } else {
+      errorEl.hidden = false;
+      errorEl.textContent = `Could not load queue data: ${err.message}`;
+    }
+  } finally {
+    queueFetchInFlight = false;
   }
 }
 
@@ -869,10 +905,19 @@ async function init() {
 }
 
 init();
-if (isGitHubPages()) {
-  setInterval(fetchQueue, GITHUB_PAGES_REFRESH_MS);
-} else {
-  setInterval(fetchQueue, REFRESH_MS);
-}
+
+const queueRefreshMs = isGitHubPages() ? GITHUB_PAGES_REFRESH_MS : REFRESH_MS;
+setInterval(fetchQueue, queueRefreshMs);
+setInterval(refreshStaffOverrides, OVERRIDES_REFRESH_MS);
+setInterval(refreshSchedule, SCHEDULE_REFRESH_MS);
+setInterval(refreshUIFromCache, UI_REFRESH_MS);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    fetchQueue();
+    refreshStaffOverrides();
+  }
+});
+
 setInterval(tickWaitTimes, TICK_MS);
 setInterval(tickLiveClock, TICK_MS);
