@@ -167,15 +167,66 @@ function mergeStaffOverrideSources(remote, local) {
       merged[key] = value;
     }
   }
-  return pruneStaleOverrides(merged);
+  return normalizeOverrides(pruneStaleOverrides(merged));
+}
+
+function staffListsEqual(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((name, index) => name === sortedB[index]);
+}
+
+function parseOverrideKey(key) {
+  const separator = key.indexOf("_");
+  if (separator === -1) return null;
+  return {
+    dateKey: key.slice(0, separator),
+    time: key.slice(separator + 1),
+  };
+}
+
+function getBaseSlotStaff(day, time) {
+  const daySchedule = scheduleData?.schedule?.[day] ?? [];
+  const slot = daySchedule.find((entry) => entry.time === time);
+  return slot?.staff ?? [];
+}
+
+function overrideDiffersFromSchedule(day, time, overrideStaff) {
+  return !staffListsEqual(overrideStaff ?? [], getBaseSlotStaff(day, time));
+}
+
+function normalizeOverrides(overrides) {
+  if (!scheduleData?.schedule) return overrides;
+
+  const { day } = nowParts();
+  const normalized = { ...overrides };
+
+  for (const [key, value] of Object.entries(normalized)) {
+    const parsed = parseOverrideKey(key);
+    if (!parsed || !isOverrideForToday(key)) continue;
+    if (!overrideDiffersFromSchedule(day, parsed.time, value?.staff)) {
+      delete normalized[key];
+    }
+  }
+
+  return normalized;
+}
+
+function isSlotOverridden(day, slot) {
+  const override = getStaffOverride(slot.time);
+  if (!override) return false;
+  return overrideDiffersFromSchedule(day, slot.time, override.staff);
 }
 
 function applyStaffOverrides(data) {
   const local = getLocalStaffOverrides();
+  const merged = mergeStaffOverrideSources(data, local);
   staffOverrides = {
-    overrides: mergeStaffOverrideSources(data, local),
+    overrides: merged,
     updatedAt: data?.updatedAt ?? null,
   };
+  saveLocalStaffOverrides(merged);
 }
 
 function getStaffOverride(time, dateKey = todayDateKey()) {
@@ -186,7 +237,7 @@ function getStaffOverride(time, dateKey = todayDateKey()) {
 function applyOverrideToSlot(day, slot) {
   if (!slot) return null;
   const override = getStaffOverride(slot.time);
-  if (!override) return slot;
+  if (!override || !overrideDiffersFromSchedule(day, slot.time, override.staff)) return slot;
   return {
     ...slot,
     staff: [...(override.staff ?? [])],
@@ -492,11 +543,15 @@ function initStaffAuth(scheduleDataRef, onChange) {
     }
     const key = slotOverrideKey(editSlotTime);
     const next = pruneStaleOverrides({ ...staffOverrides.overrides });
-    next[key] = {
-      staff: [...editMembers],
-      total: editMembers.length,
-      updatedAt: new Date().toISOString(),
-    };
+    if (overrideDiffersFromSchedule(editDay, editSlotTime, editMembers)) {
+      next[key] = {
+        staff: [...editMembers],
+        total: editMembers.length,
+        updatedAt: new Date().toISOString(),
+      };
+    } else {
+      delete next[key];
+    }
     if (editStatus) {
       editStatus.textContent = "Saving…";
       editStatus.className = "staff-edit-status";
@@ -708,7 +763,7 @@ function renderTimeline(daySchedule, currentSlot, day) {
       const staffText = effective.staff.length
         ? effective.staff.map((uniq) => staffDisplayName(uniq, scheduleData)).join(", ")
         : "—";
-      const overridden = Boolean(getStaffOverride(slot.time));
+      const overridden = isSlotOverridden(day, slot);
       return `
         <article class="timeline-item ${active ? "active" : ""}">
           <div class="timeline-time">${formatSlotRange(slot.time)}${overridden ? ' <span class="override-tag">updated</span>' : ""}</div>
@@ -800,6 +855,8 @@ async function fetchSchedule() {
   const resp = await fetch(`${url}?t=${Date.now()}`, { cache: "no-store" });
   if (!resp.ok) throw new Error("Could not load staff schedule");
   scheduleData = await resp.json();
+  staffOverrides.overrides = normalizeOverrides(staffOverrides.overrides);
+  saveLocalStaffOverrides(staffOverrides.overrides);
 }
 
 async function refreshStaffOverrides() {
