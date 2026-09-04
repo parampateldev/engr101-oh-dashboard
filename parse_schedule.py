@@ -18,8 +18,30 @@ OH_COLS = range(10, 16)
 TOTAL_COL = 16
 
 
+def parse_staff_names(wb) -> dict:
+    if "Overview" not in wb.sheetnames:
+        return {}
+
+    ws = wb["Overview"]
+    names = {}
+    for row in range(1, ws.max_row + 1):
+        full_name = ws.cell(row, 1).value
+        uniqname = ws.cell(row, 2).value
+        if (
+            not full_name
+            or not uniqname
+            or not isinstance(full_name, str)
+            or not isinstance(uniqname, str)
+            or full_name.strip() in {"Staff", "Uniqname"}
+        ):
+            continue
+        names[uniqname.strip()] = full_name.strip()
+    return names
+
+
 def parse_schedule(xlsx_path: Path) -> dict:
     wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+    staff_names = parse_staff_names(wb)
     ws = wb["The ScheduleTM"]
     schedule = {}
 
@@ -67,6 +89,7 @@ def parse_schedule(xlsx_path: Path) -> dict:
     return {
         "source": xlsx_path.name,
         "timezone": "America/Detroit",
+        "staff_names": staff_names,
         "schedule": schedule,
     }
 

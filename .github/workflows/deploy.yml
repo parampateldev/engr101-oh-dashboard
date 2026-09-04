@@ -26,9 +26,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build site
+        env:
+          STAFF_PUBLISH_TOKEN: ${{ secrets.STAFF_PUBLISH_TOKEN }}
         run: |
           mkdir -p _site
-          cp index.html styles.css app.js schedule.json _site/
+          cp index.html styles.css app.js staff.js schedule.json staff-overrides.json _site/
+          cat > _site/staff-config.js <<EOF
+          window.STAFF_PUBLISH = {
+            repo: "parampateldev/engr101-oh-dashboard",
+            token: "${STAFF_PUBLISH_TOKEN}"
+          };
+          EOF
           curl -fsSL \
             "https://eecsoh.eecs.umich.edu/api/queues/1xHcWfn2KW5HHly5Y3rLA2g5kW2" \
             -o _site/queue-snapshot.json

@@ -168,7 +168,8 @@ function findCurrentSlot(daySchedule, hour, minute) {
 function getScheduleContext() {
   const { day, dayLabel, hour, minute } = nowParts();
   const daySchedule = scheduleData?.schedule?.[day] ?? [];
-  const slot = findCurrentSlot(daySchedule, hour, minute);
+  const baseSlot = findCurrentSlot(daySchedule, hour, minute);
+  const slot = baseSlot ? applyOverrideToSlot(day, baseSlot) : null;
   const staff = slot?.staff ?? [];
   const staffCount = Math.max(1, slot?.total ?? staff.length ?? 1);
 
@@ -225,17 +226,20 @@ function renderStaffList(staff, slot) {
 
   windowEl.textContent = formatSlotRange(slot.time);
   container.innerHTML = staff
-    .map(
-      (name) => `
+    .map((uniqname) => {
+      const fullName = staffDisplayName(uniqname, scheduleData);
+      const showUniq = fullName !== uniqname;
+      return `
       <div class="staff-chip">
-        <span class="staff-name">${name}</span>
+        <span class="staff-name">${fullName}</span>
+        ${showUniq ? `<span class="staff-uniq">${uniqname}</span>` : ""}
       </div>
-    `
-    )
+    `;
+    })
     .join("");
 }
 
-function renderTimeline(daySchedule, currentSlot) {
+function renderTimeline(daySchedule, currentSlot, day) {
   const timeline = document.getElementById("timeline");
   if (!daySchedule.length) {
     timeline.innerHTML = '<p class="empty-note">No office hours scheduled today.</p>';
@@ -244,13 +248,17 @@ function renderTimeline(daySchedule, currentSlot) {
 
   timeline.innerHTML = daySchedule
     .map((slot) => {
+      const effective = applyOverrideToSlot(day, slot) ?? slot;
       const active = currentSlot && currentSlot.time === slot.time;
-      const staffText = slot.staff.length ? slot.staff.join(", ") : "—";
+      const staffText = effective.staff.length
+        ? effective.staff.map((uniq) => staffDisplayName(uniq, scheduleData)).join(", ")
+        : "—";
+      const overridden = Boolean(getStaffOverride(day, slot.time));
       return `
         <article class="timeline-item ${active ? "active" : ""}">
-          <div class="timeline-time">${formatSlotRange(slot.time)}</div>
+          <div class="timeline-time">${formatSlotRange(slot.time)}${overridden ? ' <span class="override-tag">updated</span>' : ""}</div>
           <div class="timeline-meta">
-            <span class="timeline-count">${slot.total} staff</span>
+            <span class="timeline-count">${effective.total} staff</span>
             <span class="timeline-names">${staffText}</span>
           </div>
         </article>
@@ -262,7 +270,7 @@ function renderTimeline(daySchedule, currentSlot) {
 function render(data) {
   const queue = data.queue ?? [];
   const cooldown = data.config?.cooldown ?? 600;
-  const { dayLabel, daySchedule, slot, staff, staffCount } = getScheduleContext();
+  const { day, dayLabel, daySchedule, slot, staff, staffCount } = getScheduleContext();
   const students = buildStudents(queue, cooldown, staffCount, queue.filter((e) => e.helping).length);
   const waiting = students.filter((s) => s.status === "waiting");
   const helping = students.filter((s) => s.status === "helping");
@@ -294,7 +302,7 @@ function render(data) {
     waiting.length > 0 ? `~${formatDuration(nextEst)}` : "—";
 
   renderStaffList(staff, slot);
-  renderTimeline(daySchedule, slot);
+  renderTimeline(daySchedule, slot, day);
 
   const showUniqnames = data._dashboard?.uniqnames_visible ?? false;
   setUniqnameColumnVisible(showUniqnames);
@@ -368,6 +376,10 @@ async function init() {
   setRefreshNote();
   try {
     await fetchSchedule();
+    await fetchStaffOverrides();
+    initStaffAuth(scheduleData, () => {
+      if (queueData) render(queueData);
+    });
   } catch (err) {
     document.getElementById("staff-list").innerHTML =
       `<p class="empty-note">${err.message}</p>`;

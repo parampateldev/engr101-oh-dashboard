@@ -16,6 +16,7 @@ QUEUE_ID = "1xHcWfn2KW5HHly5Y3rLA2g5kW2"
 PORT = 8080
 ROOT = Path(__file__).resolve().parent
 SESSION_FILE = ROOT / ".eecsoh_session"
+STAFF_OVERRIDES_FILE = ROOT / "staff-overrides.json"
 stored_session = None
 
 
@@ -189,6 +190,20 @@ def fetch_queue_data(cookie=None):
     return data
 
 
+def load_staff_overrides():
+    if not STAFF_OVERRIDES_FILE.is_file():
+        return {"overrides": {}, "updatedAt": None}
+    return json.loads(STAFF_OVERRIDES_FILE.read_text())
+
+
+def save_staff_overrides(payload):
+    STAFF_OVERRIDES_FILE.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def staff_request_authorized(handler):
+    return handler.headers.get("X-Staff-Auth") == "ok"
+
+
 class DashboardHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         print(f"[{self.log_date_time_string()}] {format % args}")
@@ -237,6 +252,21 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_error(404)
 
     def do_POST(self):
+        if self.path == "/api/staff-overrides":
+            if not staff_request_authorized(self):
+                self._send_json(401, {"ok": False, "error": "Staff login required"})
+                return
+            try:
+                payload = self._read_json_body()
+                if "overrides" not in payload:
+                    self._send_json(400, {"ok": False, "error": "Missing overrides"})
+                    return
+                save_staff_overrides(payload)
+                self._send_json(200, payload)
+            except json.JSONDecodeError:
+                self._send_json(400, {"ok": False, "error": "Invalid JSON"})
+            return
+
         if self.path == "/api/session":
             try:
                 body = self._read_json_body()
@@ -280,11 +310,17 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send_file(schedule_path, "application/json; charset=utf-8")
             return
 
+        if self.path == "/api/staff-overrides":
+            self._send_json(200, load_staff_overrides())
+            return
+
         routes = {
             "/": ("index.html", "text/html; charset=utf-8"),
             "/index.html": ("index.html", "text/html; charset=utf-8"),
             "/styles.css": ("styles.css", "text/css; charset=utf-8"),
             "/app.js": ("app.js", "application/javascript; charset=utf-8"),
+            "/staff.js": ("staff.js", "application/javascript; charset=utf-8"),
+            "/staff-config.js": ("staff-config.js", "application/javascript; charset=utf-8"),
         }
         if self.path in routes:
             filename, content_type = routes[self.path]

@@ -61,6 +61,12 @@
         >
           Open ENGR101 queue on eecsoh
         </a>
+        <button type="button" class="ghost-btn staff-login-btn" id="staff-login-btn">Staff login</button>
+        <div class="staff-bar" id="staff-bar" hidden>
+          <span class="staff-bar-label">Staff mode</span>
+          <button type="button" class="ghost-btn" id="staff-edit-btn">Edit on duty</button>
+          <button type="button" class="ghost-btn" id="staff-logout-btn">Log out</button>
+        </div>
       </div>
 
       <section class="stats-grid">
@@ -142,6 +148,45 @@
       </div>
     </div>
 
+    <div class="modal-backdrop" id="staff-login-modal" hidden>
+      <div class="modal" role="dialog" aria-labelledby="staff-login-title">
+        <div class="modal-header">
+          <h2 id="staff-login-title">Staff login</h2>
+          <button type="button" class="modal-close" data-close-modal="staff-login-modal" aria-label="Close">×</button>
+        </div>
+        <form id="staff-login-form" class="modal-body">
+          <p class="modal-note">Shared login for ENGR 101 staff to update who is on duty.</p>
+          <label class="field-label" for="staff-username">Username</label>
+          <input id="staff-username" class="field-input" autocomplete="username" required />
+          <label class="field-label" for="staff-password">Password</label>
+          <input id="staff-password" class="field-input" type="password" autocomplete="current-password" required />
+          <p id="staff-login-error" class="field-error"></p>
+          <button type="submit" class="sync-btn modal-submit">Log in</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="staff-edit-modal" hidden>
+      <div class="modal modal-wide" role="dialog" aria-labelledby="staff-edit-title">
+        <div class="modal-header">
+          <h2 id="staff-edit-title">Edit staff on duty</h2>
+          <button type="button" class="modal-close" data-close-modal="staff-edit-modal" aria-label="Close">×</button>
+        </div>
+        <form id="staff-edit-form" class="modal-body">
+          <p class="modal-note">Updating <strong id="staff-edit-slot-label">—</strong></p>
+          <div id="staff-edit-list" class="staff-edit-list"></div>
+          <div class="staff-add-row">
+            <select id="staff-add-select" class="field-input"></select>
+            <button type="button" class="ghost-btn" id="staff-add-btn">Add</button>
+          </div>
+          <p id="staff-edit-status" class="staff-edit-status"></p>
+          <button type="submit" class="sync-btn modal-submit">Save for everyone</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="staff-config.js"></script>
+    <script src="staff.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

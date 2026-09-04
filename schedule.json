@@ -1,6 +1,26 @@
 {
   "source": "F26 Lab and Office Hours Schedule + Attendance.xlsx",
   "timezone": "America/Detroit",
+  "staff_names": {
+    "divyabp": "Divya Pothavajhyula",
+    "kneubeck": "Kailey Neubecker",
+    "ckindelt": "Charles Kindelt",
+    "fsxtang": "Felix Tang",
+    "antgalan": "Anthony Galan",
+    "sentin": "Sam Entin",
+    "trevperl": "Trevor Perl",
+    "ayushpuj": "Ayush Pujara",
+    "anqili": "Angela Li",
+    "djsawyer": "Joel Sawyer",
+    "parampat": "Param Patel",
+    "gracela": "Grace Liu",
+    "choueiry": "Christopher Choueiry",
+    "mathewgz": "Mathew Gonzalez",
+    "abhigk": "Abhinav Ganesh Kumar",
+    "clairwa": "Claire Wang",
+    "aidenwen": "Aiden Wenzel",
+    "zhngyj": "Dominik Zhang"
+  },
   "schedule": {
     "sunday": [
       {
