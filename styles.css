@@ -921,8 +921,46 @@ tbody tr.row-helping {
 }
 
 .staff-add-row {
-  display: flex;
-  gap: 0.55rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: stretch;
+}
+
+.staff-add-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  background: var(--btn-bg);
+  color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px var(--accent-glow);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.staff-add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px var(--accent-glow);
+}
+
+.staff-add-btn:active {
+  transform: translateY(0);
+}
+
+.staff-add-hint {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.staff-add-hint.muted {
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
 .staff-add-row .field-input {

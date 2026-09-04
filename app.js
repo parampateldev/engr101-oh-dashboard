@@ -90,8 +90,31 @@ function setStaffLoggedIn(loggedIn) {
   updateStaffAuthUI();
 }
 
-function slotOverrideKey(day, time) {
-  return `${day}-${time}`;
+function todayDateKey() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function slotOverrideKey(time, dateKey = todayDateKey()) {
+  return `${dateKey}_${time}`;
+}
+
+function isOverrideForToday(key, dateKey = todayDateKey()) {
+  return key.startsWith(`${dateKey}_`);
+}
+
+function pruneStaleOverrides(overrides, dateKey = todayDateKey()) {
+  const pruned = {};
+  for (const [key, value] of Object.entries(overrides ?? {})) {
+    if (isOverrideForToday(key, dateKey)) {
+      pruned[key] = value;
+    }
+  }
+  return pruned;
 }
 
 function getLocalStaffOverrides() {
@@ -103,7 +126,10 @@ function getLocalStaffOverrides() {
 }
 
 function saveLocalStaffOverrides(overrides) {
-  localStorage.setItem(STAFF_LOCAL_OVERRIDES_KEY, JSON.stringify(overrides));
+  localStorage.setItem(
+    STAFF_LOCAL_OVERRIDES_KEY,
+    JSON.stringify(pruneStaleOverrides(overrides))
+  );
 }
 
 function mergeStaffOverrideSources(remote, local) {
@@ -115,7 +141,7 @@ function mergeStaffOverrideSources(remote, local) {
       merged[key] = value;
     }
   }
-  return merged;
+  return pruneStaleOverrides(merged);
 }
 
 function applyStaffOverrides(data) {
@@ -126,14 +152,14 @@ function applyStaffOverrides(data) {
   };
 }
 
-function getStaffOverride(day, time) {
-  if (!day || !time) return null;
-  return staffOverrides.overrides[slotOverrideKey(day, time)] ?? null;
+function getStaffOverride(time, dateKey = todayDateKey()) {
+  if (!time) return null;
+  return staffOverrides.overrides[slotOverrideKey(time, dateKey)] ?? null;
 }
 
 function applyOverrideToSlot(day, slot) {
   if (!slot) return null;
-  const override = getStaffOverride(day, slot.time);
+  const override = getStaffOverride(slot.time);
   if (!override) return slot;
   return {
     ...slot,
@@ -203,9 +229,11 @@ async function fetchStaffOverrides() {
 }
 
 async function publishStaffOverrides(nextOverrides) {
+  const todayOverrides = pruneStaleOverrides(nextOverrides);
   const payload = {
-    overrides: nextOverrides,
+    overrides: todayOverrides,
     updatedAt: new Date().toISOString(),
+    date: todayDateKey(),
   };
 
   if (!isGitHubPages()) {
@@ -222,8 +250,8 @@ async function publishStaffOverrides(nextOverrides) {
       throw new Error(err.error || `Save failed (${resp.status})`);
     }
     applyStaffOverrides(await resp.json());
-    saveLocalStaffOverrides(nextOverrides);
-    return { published: true, message: "Saved for everyone." };
+    saveLocalStaffOverrides(todayOverrides);
+    return { published: true, message: "Saved for everyone (today only)." };
   }
 
   const cfg = window.STAFF_PUBLISH ?? {};
@@ -255,15 +283,15 @@ async function publishStaffOverrides(nextOverrides) {
       throw new Error(err.message || `Publish failed (${putResp.status})`);
     }
     applyStaffOverrides(payload);
-    saveLocalStaffOverrides(nextOverrides);
-    return { published: true, message: "Published for everyone." };
+    saveLocalStaffOverrides(todayOverrides);
+    return { published: true, message: "Published for everyone (today only)." };
   }
 
-  saveLocalStaffOverrides(nextOverrides);
+  saveLocalStaffOverrides(todayOverrides);
   applyStaffOverrides(payload);
   return {
     published: false,
-    message: "Saved on this browser only. Ask the admin to add STAFF_PUBLISH_TOKEN for shared updates.",
+    message: "Saved on this browser only for today. Ask the admin to add STAFF_PUBLISH_TOKEN for shared updates.",
   };
 }
 
@@ -434,8 +462,8 @@ function initStaffAuth(scheduleDataRef, onChange) {
       }
       return;
     }
-    const key = slotOverrideKey(editDay, editSlotTime);
-    const next = { ...staffOverrides.overrides };
+    const key = slotOverrideKey(editSlotTime);
+    const next = pruneStaleOverrides({ ...staffOverrides.overrides });
     next[key] = {
       staff: [...editMembers],
       total: editMembers.length,
@@ -652,7 +680,7 @@ function renderTimeline(daySchedule, currentSlot, day) {
       const staffText = effective.staff.length
         ? effective.staff.map((uniq) => staffDisplayName(uniq, scheduleData)).join(", ")
         : "—";
-      const overridden = Boolean(getStaffOverride(day, slot.time));
+      const overridden = Boolean(getStaffOverride(slot.time));
       return `
         <article class="timeline-item ${active ? "active" : ""}">
           <div class="timeline-time">${formatSlotRange(slot.time)}${overridden ? ' <span class="override-tag">updated</span>' : ""}</div>

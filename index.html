@@ -181,9 +181,11 @@
           <p class="modal-note">Staff for <strong id="staff-edit-slot-label">—</strong></p>
           <div id="staff-edit-list" class="staff-edit-list"></div>
           <div class="staff-add-row">
-            <select id="staff-add-select" class="field-input"></select>
-            <button type="button" class="ghost-btn" id="staff-add-btn">Add</button>
+            <select id="staff-add-select" class="field-input" aria-label="Staff member to add"></select>
+            <button type="button" class="staff-add-btn" id="staff-add-btn">+ Add to list</button>
           </div>
+          <p class="staff-add-hint">Select a staff member above, then click <strong>Add to list</strong>.</p>
+          <p class="staff-add-hint muted">Changes only apply for today — tomorrow reverts to the Excel schedule.</p>
           <p id="staff-edit-status" class="staff-edit-status"></p>
           <button type="submit" class="sync-btn modal-submit">Save for everyone</button>
         </form>
