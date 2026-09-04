@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ENGR101 Office Hours Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">University of Michigan · ENGR 101</p>
+          <h1>Office Hours Dashboard</h1>
+          <p class="subtitle">
+            Live queue, staff coverage, and wait-time estimates for B521 Pierpont.
+          </p>
+        </div>
+        <div class="hero-status">
+          <div id="queue-status" class="status-pill closed">
+            <span class="status-dot"></span>
+            <span>Loading…</span>
+          </div>
+          <p id="slot-label" class="slot-label">—</p>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <span class="toolbar-item">Updated <strong id="last-updated">—</strong></span>
+          <span class="toolbar-item muted" id="refresh-note">Refreshes every 15s</span>
+        </div>
+        <a
+          class="sync-btn"
+          href="https://eecsoh.eecs.umich.edu/queues/1xHcWfn2KW5HHly5Y3rLA2g5kW2"
+          target="_blank"
+          rel="noopener"
+        >
+          Open ENGR101 queue on eecsoh
+        </a>
+      </div>
+
+      <section class="stats-grid">
+        <article class="stat-card accent">
+          <p class="stat-label">Students waiting</p>
+          <p class="stat-value" id="queue-length">—</p>
+        </article>
+        <article class="stat-card">
+          <p class="stat-label">Being helped now</p>
+          <p class="stat-value" id="helping-count">—</p>
+        </article>
+        <article class="stat-card highlight">
+          <p class="stat-label">Staff on duty</p>
+          <p class="stat-value" id="staff-count">—</p>
+        </article>
+        <article class="stat-card">
+          <p class="stat-label">Average wait</p>
+          <p class="stat-value" id="avg-wait">—</p>
+        </article>
+        <article class="stat-card">
+          <p class="stat-label">Longest wait</p>
+          <p class="stat-value" id="max-wait">—</p>
+        </article>
+        <article class="stat-card">
+          <p class="stat-label">Est. for next in line</p>
+          <p class="stat-value" id="next-est">—</p>
+        </article>
+      </section>
+
+      <div class="main-grid">
+        <aside class="side-column">
+          <section class="panel staff-panel">
+            <div class="panel-header">
+              <h2>Staff on duty</h2>
+              <span id="staff-window" class="panel-tag">—</span>
+            </div>
+            <div id="staff-list" class="staff-list">
+              <p class="empty-note">Loading schedule…</p>
+            </div>
+          </section>
+
+          <section class="panel timeline-panel">
+            <div class="panel-header">
+              <h2>Today's coverage</h2>
+              <span id="today-name" class="panel-tag">—</span>
+            </div>
+            <div id="timeline" class="timeline"></div>
+          </section>
+        </aside>
+
+        <section class="panel queue-panel">
+          <div class="panel-header">
+            <h2>Queue</h2>
+            <span class="panel-tag">Student names are on eecsoh</span>
+          </div>
+
+          <div id="error-state" class="error-state" hidden></div>
+          <div id="empty-state" class="empty-state" hidden>
+            <p class="empty-title">Queue is empty</p>
+            <p class="empty-note">Students will appear here when they join on eecsoh.</p>
+          </div>
+
+          <div class="table-wrap">
+            <table id="queue-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th id="uniqname-header" class="col-uniqname" hidden>Uniqname</th>
+                  <th>Joined</th>
+                  <th>Waiting</th>
+                  <th>Est. help</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="queue-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

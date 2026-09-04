@@ -1,0 +1,668 @@
+{
+  "source": "F26 Lab and Office Hours Schedule + Attendance.xlsx",
+  "timezone": "America/Detroit",
+  "schedule": {
+    "sunday": [
+      {
+        "time": "12:30",
+        "staff": [
+          "abhigk",
+          "anqili",
+          "antgalan"
+        ],
+        "total": 3
+      },
+      {
+        "time": "13:00",
+        "staff": [
+          "abhigk",
+          "anqili",
+          "antgalan"
+        ],
+        "total": 3
+      },
+      {
+        "time": "13:30",
+        "staff": [
+          "abhigk",
+          "anqili",
+          "antgalan"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:00",
+        "staff": [
+          "abhigk",
+          "anqili",
+          "antgalan"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:30",
+        "staff": [
+          "abhigk",
+          "anqili",
+          "antgalan"
+        ],
+        "total": 3
+      },
+      {
+        "time": "15:00",
+        "staff": [
+          "abhigk",
+          "anqili",
+          "antgalan"
+        ],
+        "total": 3
+      }
+    ],
+    "monday": [
+      {
+        "time": "12:30",
+        "staff": [
+          "sentin",
+          "ayushpuj",
+          "trevperl"
+        ],
+        "total": 3
+      },
+      {
+        "time": "13:00",
+        "staff": [
+          "sentin",
+          "ayushpuj",
+          "trevperl"
+        ],
+        "total": 3
+      },
+      {
+        "time": "13:30",
+        "staff": [
+          "sentin",
+          "ayushpuj",
+          "trevperl"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:00",
+        "staff": [
+          "sentin",
+          "ayushpuj",
+          "trevperl"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:30",
+        "staff": [
+          "sentin",
+          "trevperl"
+        ],
+        "total": 2
+      },
+      {
+        "time": "15:00",
+        "staff": [
+          "sentin",
+          "ayushpuj",
+          "ckindelt"
+        ],
+        "total": 3
+      },
+      {
+        "time": "15:30",
+        "staff": [
+          "choueiry",
+          "ayushpuj",
+          "ckindelt",
+          "sentin"
+        ],
+        "total": 4
+      },
+      {
+        "time": "16:00",
+        "staff": [
+          "choueiry",
+          "ayushpuj",
+          "ckindelt",
+          "sentin"
+        ],
+        "total": 4
+      },
+      {
+        "time": "16:30",
+        "staff": [
+          "choueiry",
+          "ayushpuj",
+          "djsawyer"
+        ],
+        "total": 3
+      },
+      {
+        "time": "17:00",
+        "staff": [
+          "gracela",
+          "divyabp",
+          "djsawyer"
+        ],
+        "total": 3
+      },
+      {
+        "time": "17:30",
+        "staff": [
+          "gracela",
+          "divyabp",
+          "djsawyer"
+        ],
+        "total": 3
+      },
+      {
+        "time": "18:00",
+        "staff": [
+          "gracela",
+          "divyabp",
+          "djsawyer"
+        ],
+        "total": 3
+      },
+      {
+        "time": "18:30",
+        "staff": [
+          "anqili",
+          "kneubeck",
+          "fsxtang",
+          "divyabp"
+        ],
+        "total": 4
+      },
+      {
+        "time": "19:00",
+        "staff": [
+          "anqili",
+          "kneubeck",
+          "fsxtang"
+        ],
+        "total": 3
+      },
+      {
+        "time": "19:30",
+        "staff": [
+          "anqili",
+          "kneubeck",
+          "fsxtang"
+        ],
+        "total": 3
+      }
+    ],
+    "tuesday": [
+      {
+        "time": "12:30",
+        "staff": [
+          "antgalan",
+          "divyabp",
+          "sentin"
+        ],
+        "total": 3
+      },
+      {
+        "time": "13:00",
+        "staff": [
+          "antgalan",
+          "divyabp",
+          "sentin"
+        ],
+        "total": 3
+      },
+      {
+        "time": "13:30",
+        "staff": [
+          "antgalan",
+          "divyabp",
+          "djsawyer"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:00",
+        "staff": [
+          "antgalan",
+          "kneubeck",
+          "djsawyer",
+          "divyabp"
+        ],
+        "total": 4
+      },
+      {
+        "time": "14:30",
+        "staff": [
+          "antgalan",
+          "kneubeck",
+          "djsawyer",
+          "divyabp"
+        ],
+        "total": 4
+      },
+      {
+        "time": "15:00",
+        "staff": [
+          "clairwa",
+          "trevperl"
+        ],
+        "total": 2
+      },
+      {
+        "time": "15:30",
+        "staff": [
+          "clairwa",
+          "trevperl"
+        ],
+        "total": 2
+      },
+      {
+        "time": "16:00",
+        "staff": [
+          "clairwa",
+          "trevperl"
+        ],
+        "total": 2
+      },
+      {
+        "time": "16:30",
+        "staff": [
+          "sentin",
+          "kneubeck",
+          "fsxtang",
+          "ckindelt"
+        ],
+        "total": 4
+      },
+      {
+        "time": "17:00",
+        "staff": [
+          "zhngyj",
+          "kneubeck",
+          "fsxtang",
+          "ckindelt"
+        ],
+        "total": 4
+      },
+      {
+        "time": "17:30",
+        "staff": [
+          "zhngyj",
+          "kneubeck",
+          "fsxtang",
+          "ckindelt"
+        ],
+        "total": 4
+      },
+      {
+        "time": "18:00",
+        "staff": [
+          "zhngyj",
+          "kneubeck",
+          "divyabp",
+          "ckindelt"
+        ],
+        "total": 4
+      },
+      {
+        "time": "18:30",
+        "staff": [
+          "zhngyj",
+          "kneubeck",
+          "divyabp"
+        ],
+        "total": 3
+      },
+      {
+        "time": "19:00",
+        "staff": [
+          "zhngyj",
+          "kneubeck",
+          "divyabp"
+        ],
+        "total": 3
+      },
+      {
+        "time": "19:30",
+        "staff": [
+          "zhngyj",
+          "kneubeck",
+          "divyabp"
+        ],
+        "total": 3
+      }
+    ],
+    "wednesday": [
+      {
+        "time": "12:30",
+        "staff": [
+          "fsxtang",
+          "ckindelt",
+          "djsawyer"
+        ],
+        "total": 3
+      },
+      {
+        "time": "13:00",
+        "staff": [
+          "fsxtang",
+          "ckindelt",
+          "djsawyer"
+        ],
+        "total": 3
+      },
+      {
+        "time": "13:30",
+        "staff": [
+          "fsxtang",
+          "trevperl",
+          "djsawyer"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:00",
+        "staff": [
+          "fsxtang",
+          "trevperl",
+          "djsawyer"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:30",
+        "staff": [
+          "fsxtang",
+          "trevperl",
+          "djsawyer"
+        ],
+        "total": 3
+      },
+      {
+        "time": "15:00",
+        "staff": [
+          "ckindelt",
+          "djsawyer"
+        ],
+        "total": 2
+      },
+      {
+        "time": "15:30",
+        "staff": [
+          "ayushpuj",
+          "ckindelt",
+          "djsawyer",
+          "divyabp"
+        ],
+        "total": 4
+      },
+      {
+        "time": "16:00",
+        "staff": [
+          "ayushpuj",
+          "ckindelt",
+          "sentin",
+          "divyabp"
+        ],
+        "total": 4
+      },
+      {
+        "time": "16:30",
+        "staff": [
+          "ayushpuj",
+          "ckindelt",
+          "zhngyj"
+        ],
+        "total": 3
+      },
+      {
+        "time": "17:00",
+        "staff": [
+          "gracela",
+          "anqili",
+          "zhngyj"
+        ],
+        "total": 3
+      },
+      {
+        "time": "17:30",
+        "staff": [
+          "gracela",
+          "anqili",
+          "zhngyj"
+        ],
+        "total": 3
+      },
+      {
+        "time": "18:00",
+        "staff": [
+          "gracela",
+          "anqili",
+          "fsxtang"
+        ],
+        "total": 3
+      },
+      {
+        "time": "18:30",
+        "staff": [
+          "fsxtang",
+          "kneubeck",
+          "parampat"
+        ],
+        "total": 3
+      },
+      {
+        "time": "19:00",
+        "staff": [
+          "fsxtang",
+          "kneubeck",
+          "parampat"
+        ],
+        "total": 3
+      },
+      {
+        "time": "19:30",
+        "staff": [
+          "fsxtang",
+          "kneubeck",
+          "parampat"
+        ],
+        "total": 3
+      }
+    ],
+    "thursday": [
+      {
+        "time": "12:30",
+        "staff": [
+          "sentin",
+          "mathewgz"
+        ],
+        "total": 2
+      },
+      {
+        "time": "13:00",
+        "staff": [
+          "sentin",
+          "mathewgz"
+        ],
+        "total": 2
+      },
+      {
+        "time": "13:30",
+        "staff": [
+          "antgalan",
+          "choueiry",
+          "mathewgz"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:00",
+        "staff": [
+          "antgalan",
+          "choueiry",
+          "mathewgz"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:30",
+        "staff": [
+          "antgalan",
+          "choueiry",
+          "mathewgz"
+        ],
+        "total": 3
+      },
+      {
+        "time": "15:00",
+        "staff": [
+          "divyabp",
+          "sentin",
+          "mathewgz"
+        ],
+        "total": 3
+      },
+      {
+        "time": "15:30",
+        "staff": [
+          "divyabp",
+          "djsawyer",
+          "parampat"
+        ],
+        "total": 3
+      },
+      {
+        "time": "16:00",
+        "staff": [
+          "divyabp",
+          "djsawyer",
+          "parampat"
+        ],
+        "total": 3
+      },
+      {
+        "time": "16:30",
+        "staff": [
+          "djsawyer",
+          "parampat",
+          "ckindelt"
+        ],
+        "total": 3
+      },
+      {
+        "time": "17:00",
+        "staff": [
+          "anqili",
+          "djsawyer",
+          "gracela",
+          "ckindelt"
+        ],
+        "total": 4
+      },
+      {
+        "time": "17:30",
+        "staff": [
+          "anqili",
+          "djsawyer",
+          "gracela"
+        ],
+        "total": 3
+      },
+      {
+        "time": "18:00",
+        "staff": [
+          "anqili",
+          "djsawyer",
+          "gracela"
+        ],
+        "total": 3
+      },
+      {
+        "time": "18:30",
+        "staff": [
+          "abhigk",
+          "ayushpuj"
+        ],
+        "total": 2
+      },
+      {
+        "time": "19:00",
+        "staff": [
+          "abhigk",
+          "ayushpuj"
+        ],
+        "total": 2
+      },
+      {
+        "time": "19:30",
+        "staff": [
+          "abhigk",
+          "ayushpuj"
+        ],
+        "total": 2
+      }
+    ],
+    "friday": [
+      {
+        "time": "12:30",
+        "staff": [
+          "aidenwen",
+          "ayushpuj",
+          "antgalan"
+        ],
+        "total": 3
+      },
+      {
+        "time": "13:00",
+        "staff": [
+          "aidenwen",
+          "ayushpuj",
+          "antgalan"
+        ],
+        "total": 3
+      },
+      {
+        "time": "13:30",
+        "staff": [
+          "aidenwen",
+          "ayushpuj",
+          "trevperl"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:00",
+        "staff": [
+          "aidenwen",
+          "choueiry",
+          "trevperl"
+        ],
+        "total": 3
+      },
+      {
+        "time": "14:30",
+        "staff": [
+          "aidenwen",
+          "choueiry",
+          "trevperl"
+        ],
+        "total": 3
+      },
+      {
+        "time": "15:00",
+        "staff": [
+          "aidenwen",
+          "choueiry",
+          "trevperl"
+        ],
+        "total": 3
+      }
+    ]
+  }
+}
