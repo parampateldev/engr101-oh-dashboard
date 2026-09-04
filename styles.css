@@ -427,6 +427,10 @@ h1 {
   cursor: grab;
 }
 
+.toolbar .ghost-btn {
+  margin-top: 0;
+}
+
 .ghost-btn {
   margin-top: 0.65rem;
   background: transparent;

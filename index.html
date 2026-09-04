@@ -173,7 +173,12 @@
           <button type="button" class="modal-close" data-close-modal="staff-edit-modal" aria-label="Close">×</button>
         </div>
         <form id="staff-edit-form" class="modal-body">
-          <p class="modal-note">Updating <strong id="staff-edit-slot-label">—</strong></p>
+          <p class="modal-note">
+            Editing coverage for <strong id="staff-edit-day-label">—</strong>
+          </p>
+          <label class="field-label" for="staff-slot-select">Time block</label>
+          <select id="staff-slot-select" class="field-input"></select>
+          <p class="modal-note">Staff for <strong id="staff-edit-slot-label">—</strong></p>
           <div id="staff-edit-list" class="staff-edit-list"></div>
           <div class="staff-add-row">
             <select id="staff-add-select" class="field-input"></select>

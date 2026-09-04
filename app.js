@@ -302,8 +302,11 @@ function initStaffAuth(scheduleDataRef, onChange) {
   const addSelect = document.getElementById("staff-add-select");
   const addBtn = document.getElementById("staff-add-btn");
   const editStatus = document.getElementById("staff-edit-status");
+  const slotSelect = document.getElementById("staff-slot-select");
 
   let editMembers = [];
+  let editDay = null;
+  let editSlotTime = null;
 
   function populateAddSelect() {
     if (!addSelect) return;
@@ -317,19 +320,64 @@ function initStaffAuth(scheduleDataRef, onChange) {
     addSelect.innerHTML = `<option value="">Add staff member…</option>${options}`;
   }
 
-  function openEditModal() {
-    const { day, dayLabel, slot } = getScheduleContext();
-    if (!slot) {
-      if (editStatus) editStatus.textContent = "No active office hours block to edit.";
+  function slotByTime(daySchedule, time) {
+    return daySchedule.find((slot) => slot.time === time) ?? null;
+  }
+
+  function loadEditSlot(day, time) {
+    const daySchedule = scheduleDataRef?.schedule?.[day] ?? [];
+    const baseSlot = slotByTime(daySchedule, time);
+    if (!baseSlot) {
+      editMembers = [];
+      renderStaffEditList(editMembers, scheduleDataRef);
+      populateAddSelect();
       return;
     }
-    const effective = applyOverrideToSlot(day, slot);
+    editDay = day;
+    editSlotTime = time;
+    const effective = applyOverrideToSlot(day, baseSlot);
     editMembers = [...(effective?.staff ?? [])];
-    document.getElementById("staff-edit-slot-label").textContent = `${dayLabel} · ${formatSlotRange(slot.time)}`;
+    document.getElementById("staff-edit-slot-label").textContent =
+      `${day} · ${formatSlotRange(time)}`;
     renderStaffEditList(editMembers, scheduleDataRef);
     populateAddSelect();
-    if (editStatus) editStatus.textContent = "";
+  }
+
+  function populateSlotSelect() {
+    if (!slotSelect) return false;
+    const { day, dayLabel, daySchedule, slot } = getScheduleContext();
+    if (!daySchedule.length) {
+      slotSelect.innerHTML = "";
+      return false;
+    }
+
+    slotSelect.innerHTML = daySchedule
+      .map(
+        (entry) =>
+          `<option value="${entry.time}">${formatSlotRange(entry.time)}</option>`
+      )
+      .join("");
+
+    const defaultTime = slot?.time ?? daySchedule[0].time;
+    slotSelect.value = defaultTime;
+    document.getElementById("staff-edit-day-label").textContent = dayLabel;
+    loadEditSlot(day, defaultTime);
+    return true;
+  }
+
+  function openEditModal() {
+    if (editStatus) {
+      editStatus.textContent = "";
+      editStatus.className = "staff-edit-status";
+    }
     openModal("staff-edit-modal");
+
+    if (!populateSlotSelect()) {
+      if (editStatus) {
+        editStatus.textContent = "No office hours scheduled today to edit.";
+        editStatus.className = "staff-edit-status error";
+      }
+    }
   }
 
   loginBtn?.addEventListener("click", () => openModal("staff-login-modal"));
@@ -339,6 +387,11 @@ function initStaffAuth(scheduleDataRef, onChange) {
   });
 
   editBtn?.addEventListener("click", openEditModal);
+
+  slotSelect?.addEventListener("change", () => {
+    const { day } = getScheduleContext();
+    loadEditSlot(day, slotSelect.value);
+  });
 
   loginForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -374,9 +427,14 @@ function initStaffAuth(scheduleDataRef, onChange) {
 
   editForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const { day, slot } = getScheduleContext();
-    if (!slot) return;
-    const key = slotOverrideKey(day, slot.time);
+    if (!editDay || !editSlotTime) {
+      if (editStatus) {
+        editStatus.textContent = "Pick a time block to edit.";
+        editStatus.className = "staff-edit-status error";
+      }
+      return;
+    }
+    const key = slotOverrideKey(editDay, editSlotTime);
     const next = { ...staffOverrides.overrides };
     next[key] = {
       staff: [...editMembers],
@@ -444,9 +502,9 @@ function nowParts() {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: TZ,
     weekday: "long",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
   }).formatToParts(new Date());
 
   const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
@@ -500,7 +558,7 @@ function findCurrentSlot(daySchedule, hour, minute) {
         nearest = slot;
       }
     }
-    if (nearest && nearestDiff <= 30) current = nearest;
+    if (nearest && nearestDiff <= 90) current = nearest;
   }
 
   return current;
