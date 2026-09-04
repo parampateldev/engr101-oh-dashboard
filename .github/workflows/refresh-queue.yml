@@ -1,8 +1,8 @@
-name: Deploy to GitHub Pages
+name: Refresh queue snapshot
 
 on:
-  push:
-    branches: [main]
+  schedule:
+    - cron: "* * * * *"
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  refresh:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build site
+      - name: Build site with live queue
         env:
           STAFF_PUBLISH_TOKEN: ${{ secrets.STAFF_PUBLISH_TOKEN }}
         run: |

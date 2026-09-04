@@ -319,7 +319,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "/index.html": ("index.html", "text/html; charset=utf-8"),
             "/styles.css": ("styles.css", "text/css; charset=utf-8"),
             "/app.js": ("app.js", "application/javascript; charset=utf-8"),
-            "/staff.js": ("staff.js", "application/javascript; charset=utf-8"),
             "/staff-config.js": ("staff-config.js", "application/javascript; charset=utf-8"),
         }
         if self.path in routes:

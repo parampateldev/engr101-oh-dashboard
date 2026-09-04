@@ -32,7 +32,7 @@ function setRefreshNote() {
   const note = document.getElementById("refresh-note");
   if (!note) return;
   note.textContent = isGitHubPages()
-    ? "Queue updates every 2 min on GitHub Pages"
+    ? "Queue refreshes every ~1 min on GitHub Pages"
     : "Refreshes every 15s";
 
   const queueNote = document.getElementById("queue-note");
@@ -741,7 +741,7 @@ async function init() {
 
 init();
 if (isGitHubPages()) {
-  setInterval(fetchQueue, 30000);
+  setInterval(fetchQueue, 15000);
 } else {
   setInterval(fetchQueue, REFRESH_MS);
 }
