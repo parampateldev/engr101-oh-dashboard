@@ -34,6 +34,13 @@ function setRefreshNote() {
   note.textContent = isGitHubPages()
     ? "Queue updates every 2 min on GitHub Pages"
     : "Refreshes every 15s";
+
+  const queueNote = document.getElementById("queue-note");
+  if (queueNote) {
+    queueNote.textContent = isGitHubPages()
+      ? "Uniqnames not available on public dashboard"
+      : "Student names are on eecsoh";
+  }
 }
 
 const THEMES = ["pink", "maize", "light", "dark", "sunrise", "sunset"];
@@ -221,7 +228,6 @@ function renderStaffList(staff, slot) {
     .map(
       (name) => `
       <div class="staff-chip">
-        <span class="staff-avatar">${name.slice(0, 2).toUpperCase()}</span>
         <span class="staff-name">${name}</span>
       </div>
     `

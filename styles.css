@@ -299,7 +299,9 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.55rem;
+  gap: 0.65rem;
+  flex-shrink: 0;
+  min-width: min(100%, 15rem);
 }
 
 .status-pill {
@@ -607,24 +609,10 @@ h1 {
 .staff-chip {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
   padding: 0.65rem 0.75rem;
   border-radius: 14px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-}
-
-.staff-avatar {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--btn-bg);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  font-family: "JetBrains Mono", monospace;
 }
 
 .staff-name {
@@ -785,12 +773,7 @@ tbody tr.row-helping {
 
   .hero-status {
     align-items: flex-start;
-  }
-
-  .theme-picker {
-    position: static;
-    width: fit-content;
-    margin: 0 auto 1rem;
+    width: 100%;
   }
 
   .stats-grid {
