@@ -211,10 +211,6 @@ body {
 }
 
 .theme-picker {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: 100;
   display: flex;
   align-items: center;
   gap: 0.55rem;
@@ -224,6 +220,7 @@ body {
   border: 1px solid var(--picker-border);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow);
+  flex-shrink: 0;
 }
 
 .theme-picker-label {

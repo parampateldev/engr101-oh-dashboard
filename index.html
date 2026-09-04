@@ -11,20 +11,14 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <script>
+      (function () {
+        var theme = localStorage.getItem("engr101-dashboard-theme") || "pink";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
   </head>
   <body>
-    <div class="theme-picker">
-      <label class="theme-picker-label" for="theme-select">Theme</label>
-      <select id="theme-select" class="theme-select" aria-label="Choose dashboard theme">
-        <option value="pink">Pink</option>
-        <option value="maize">Maize &amp; Blue</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-        <option value="sunrise">Sunrise</option>
-        <option value="sunset">Sunset</option>
-      </select>
-    </div>
-
     <div class="page">
       <header class="hero">
         <div class="hero-copy">
@@ -35,6 +29,17 @@
           </p>
         </div>
         <div class="hero-status">
+          <div class="theme-picker">
+            <label class="theme-picker-label" for="theme-select">Theme</label>
+            <select id="theme-select" class="theme-select" aria-label="Choose dashboard theme">
+              <option value="pink">Pink</option>
+              <option value="maize">Maize &amp; Blue</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="sunrise">Sunrise</option>
+              <option value="sunset">Sunset</option>
+            </select>
+          </div>
           <div id="queue-status" class="status-pill closed">
             <span class="status-dot"></span>
             <span>Loading…</span>
@@ -109,7 +114,7 @@
         <section class="panel queue-panel">
           <div class="panel-header">
             <h2>Queue</h2>
-            <span class="panel-tag">Student names are on eecsoh</span>
+            <span class="panel-tag" id="queue-note">Student names are on eecsoh</span>
           </div>
 
           <div id="error-state" class="error-state" hidden></div>
