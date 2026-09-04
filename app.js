@@ -36,6 +36,26 @@ function setRefreshNote() {
     : "Refreshes every 15s";
 }
 
+const THEMES = ["pink", "maize", "light", "dark", "sunrise", "sunset"];
+const THEME_KEY = "engr101-dashboard-theme";
+
+function applyTheme(theme) {
+  const next = THEMES.includes(theme) ? theme : "pink";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem(THEME_KEY, next);
+  const select = document.getElementById("theme-select");
+  if (select && select.value !== next) select.value = next;
+}
+
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  applyTheme(saved || "pink");
+  const select = document.getElementById("theme-select");
+  if (select) {
+    select.addEventListener("change", (event) => applyTheme(event.target.value));
+  }
+}
+
 function formatDuration(seconds) {
   const s = Math.max(0, Math.floor(seconds));
   const h = Math.floor(s / 3600);
@@ -338,6 +358,7 @@ async function fetchQueue() {
 }
 
 async function init() {
+  initTheme();
   setRefreshNote();
   try {
     await fetchSchedule();
