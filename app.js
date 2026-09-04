@@ -99,6 +99,33 @@ function todayDateKey() {
   }).format(new Date());
 }
 
+function formatDateLabel(date = new Date()) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatLiveTime(date = new Date()) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
+}
+
+function tickLiveClock() {
+  const now = new Date();
+  const timeEl = document.getElementById("live-time");
+  const dateEl = document.getElementById("live-date");
+  if (timeEl) timeEl.textContent = formatLiveTime(now);
+  if (dateEl) dateEl.textContent = formatDateLabel(now);
+}
+
 function slotOverrideKey(time, dateKey = todayDateKey()) {
   return `${dateKey}_${time}`;
 }
@@ -365,8 +392,10 @@ function initStaffAuth(scheduleDataRef, onChange) {
     editSlotTime = time;
     const effective = applyOverrideToSlot(day, baseSlot);
     editMembers = [...(effective?.staff ?? [])];
+    const dateLabel = formatDateLabel();
+    document.getElementById("staff-edit-day-label").textContent = dateLabel;
     document.getElementById("staff-edit-slot-label").textContent =
-      `${day} · ${formatSlotRange(time)}`;
+      `${dateLabel} · ${formatSlotRange(time)}`;
     renderStaffEditList(editMembers, scheduleDataRef);
     populateAddSelect();
   }
@@ -388,7 +417,7 @@ function initStaffAuth(scheduleDataRef, onChange) {
 
     const defaultTime = slot?.time ?? daySchedule[0].time;
     slotSelect.value = defaultTime;
-    document.getElementById("staff-edit-day-label").textContent = dayLabel;
+    document.getElementById("staff-edit-day-label").textContent = formatDateLabel();
     loadEditSlot(day, defaultTime);
     return true;
   }
@@ -712,8 +741,8 @@ function render(data) {
   statusEl.className = `status-pill ${data.open ? "open" : "closed"}`;
 
   document.getElementById("slot-label").textContent = slot
-    ? `${dayLabel} · ${formatSlotRange(slot.time)}`
-    : `${dayLabel} · Outside scheduled hours`;
+    ? `${formatDateLabel()} · ${formatSlotRange(slot.time)}`
+    : `${formatDateLabel()} · Outside scheduled hours`;
 
   document.getElementById("today-name").textContent = dayLabel;
   document.getElementById("last-updated").textContent = lastUpdated
@@ -802,6 +831,7 @@ async function init() {
   initTheme();
   setRefreshNote();
   updateStaffAuthUI();
+  tickLiveClock();
 
   try {
     await fetchSchedule();
@@ -832,3 +862,4 @@ if (isGitHubPages()) {
   setInterval(fetchQueue, REFRESH_MS);
 }
 setInterval(tickWaitTimes, TICK_MS);
+setInterval(tickLiveClock, TICK_MS);

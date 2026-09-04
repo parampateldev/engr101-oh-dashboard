@@ -28,6 +28,10 @@
             Live queue, staff coverage, and wait-time estimates for B521 Pierpont.
           </p>
         </div>
+        <div class="hero-clock" aria-live="polite">
+          <p class="live-clock-time" id="live-time">—</p>
+          <p class="live-clock-date" id="live-date">—</p>
+        </div>
         <div class="hero-status">
           <div class="theme-picker">
             <label class="theme-picker-label" for="theme-select">Theme</label>
@@ -176,9 +180,9 @@
           <p class="modal-note">
             Editing coverage for <strong id="staff-edit-day-label">—</strong>
           </p>
-          <label class="field-label" for="staff-slot-select">Time block</label>
+          <label class="field-label" for="staff-slot-select">Time block on this date</label>
           <select id="staff-slot-select" class="field-input"></select>
-          <p class="modal-note">Staff for <strong id="staff-edit-slot-label">—</strong></p>
+          <p class="modal-note">Staff on duty for <strong id="staff-edit-slot-label">—</strong></p>
           <div id="staff-edit-list" class="staff-edit-list"></div>
           <div class="staff-add-row">
             <select id="staff-add-select" class="field-input" aria-label="Staff member to add"></select>

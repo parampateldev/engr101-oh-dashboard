@@ -264,11 +264,46 @@ body {
 }
 
 .hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
   gap: 1.5rem;
   margin-bottom: 1.25rem;
+}
+
+.hero-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  min-width: 11rem;
+}
+
+.live-clock-time {
+  margin: 0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-light);
+}
+
+.live-clock-date {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.35;
+  max-width: 14rem;
 }
 
 .eyebrow {
@@ -1012,7 +1047,11 @@ tbody tr.row-helping {
 
 @media (max-width: 720px) {
   .hero {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+
+  .hero-clock {
+    width: fit-content;
   }
 
   .hero-status {
