@@ -10,6 +10,7 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from urllib.parse import urlparse
 
 QUEUE_API = "https://eecsoh.eecs.umich.edu/api/queues/1xHcWfn2KW5HHly5Y3rLA2g5kW2"
 QUEUE_ID = "1xHcWfn2KW5HHly5Y3rLA2g5kW2"
@@ -208,6 +209,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         print(f"[{self.log_date_time_string()}] {format % args}")
 
+    def request_path(self):
+        return urlparse(self.path).path
+
     def _send_json(self, status, payload, cors=False):
         body = json.dumps(payload).encode()
         self.send_response(status)
@@ -240,7 +244,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(length).decode())
 
     def do_OPTIONS(self):
-        if self.path == "/api/session":
+        if self.request_path() == "/api/session":
             self.send_response(204)
             origin = self.headers.get("Origin", "")
             if "eecsoh.eecs.umich.edu" in origin:
@@ -252,7 +256,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_error(404)
 
     def do_POST(self):
-        if self.path == "/api/staff-overrides":
+        if self.request_path() == "/api/staff-overrides":
             if not staff_request_authorized(self):
                 self._send_json(401, {"ok": False, "error": "Staff login required"})
                 return
@@ -267,7 +271,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._send_json(400, {"ok": False, "error": "Invalid JSON"})
             return
 
-        if self.path == "/api/session":
+        if self.request_path() == "/api/session":
             try:
                 body = self._read_json_body()
                 cookie = body.get("cookie", "")
@@ -283,18 +287,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_error(404)
 
     def do_DELETE(self):
-        if self.path == "/api/session":
+        if self.request_path() == "/api/session":
             clear_session()
             self._send_json(200, {"ok": True, "connected": False})
             return
         self.send_error(404)
 
     def do_GET(self):
-        if self.path == "/api/session":
+        path = self.request_path()
+
+        if path == "/api/session":
             self._send_json(200, session_status(get_active_cookie(self)))
             return
 
-        if self.path == "/api/queue":
+        if path == "/api/queue":
             cookie = get_active_cookie(self)
             try:
                 self._send_json(200, fetch_queue_data(cookie=cookie))
@@ -302,7 +308,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._send_json(502, {"error": f"Failed to fetch queue data: {exc}"})
             return
 
-        if self.path == "/api/schedule":
+        if path == "/api/schedule":
             schedule_path = ROOT / "schedule.json"
             if not schedule_path.is_file():
                 self._send_json(404, {"error": "schedule.json not found. Run parse_schedule.py first."})
@@ -310,7 +316,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send_file(schedule_path, "application/json; charset=utf-8")
             return
 
-        if self.path == "/api/staff-overrides":
+        if path == "/api/staff-overrides":
             self._send_json(200, load_staff_overrides())
             return
 
@@ -320,9 +326,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "/styles.css": ("styles.css", "text/css; charset=utf-8"),
             "/app.js": ("app.js", "application/javascript; charset=utf-8"),
             "/staff-config.js": ("staff-config.js", "application/javascript; charset=utf-8"),
+            "/queue-proxy-config.js": ("queue-proxy-config.js", "application/javascript; charset=utf-8"),
         }
-        if self.path in routes:
-            filename, content_type = routes[self.path]
+        if path in routes:
+            filename, content_type = routes[path]
             self._send_file(ROOT / filename, content_type)
             return
 
