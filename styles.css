@@ -386,6 +386,7 @@ h1 {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .toolbar-item {
@@ -394,6 +395,148 @@ h1 {
 
 .toolbar-item.muted {
   color: var(--muted);
+}
+
+.name-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.name-switch:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.name-switch.on {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.name-switch-track {
+  position: relative;
+  width: 2.4rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 35%, transparent);
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.name-switch.on .name-switch-track {
+  background: var(--accent);
+}
+
+.name-switch-thumb {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.name-switch.on .name-switch-thumb {
+  transform: translateX(1.05rem);
+}
+
+.name-switch-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  gap: 0.08rem;
+}
+
+.name-switch-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.name-switch-status {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.name-switch.on .name-switch-status {
+  color: var(--accent-light);
+}
+
+.session-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.session-status-btn.connected {
+  border-color: rgba(76, 175, 80, 0.4);
+  color: #4caf50;
+}
+
+.session-status-btn.connected .status-dot {
+  background: #4caf50;
+}
+
+.session-status-btn.disconnected {
+  border-color: rgba(255, 152, 0, 0.4);
+  color: #ff9800;
+}
+
+.session-status-btn.disconnected .status-dot {
+  background: #ff9800;
+}
+
+.preview-btn {
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.preview-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent-light);
+  border-color: var(--accent);
+}
+
+.session-alert {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: rgba(255, 152, 0, 0.12);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  color: #ffb74d;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.session-alert button.link-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  font-weight: 600;
 }
 
 .staff-auth {
@@ -749,18 +892,33 @@ tbody tr.row-helping {
 .position {
   font-weight: 700;
   color: var(--accent-light);
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.position-num {
+  display: block;
   font-size: 1.15rem;
 }
 
+.position-ahead {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 .join-time {
-  min-width: 8.5rem;
+  min-width: 9.5rem;
 }
 
 .join-clock {
   display: block;
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.35rem;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 .join-relative {
@@ -768,6 +926,36 @@ tbody tr.row-helping {
   margin-top: 0.15rem;
   font-size: 0.82rem;
   color: var(--muted);
+}
+
+.bookmarklet-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: var(--accent-soft);
+  color: var(--accent-light);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: grab;
+}
+
+.bookmarklet-link:hover {
+  border-style: solid;
+}
+
+.connect-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.connect-steps li {
+  margin: 0;
 }
 
 .queue-hint {
@@ -795,9 +983,10 @@ tbody tr.row-pinned {
   color: var(--accent-light);
 }
 
+.student-name,
 .uniqname {
-  font-family: "JetBrains Mono", monospace;
   font-weight: 600;
+  font-size: 1.05rem;
 }
 
 .wait-time {

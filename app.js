@@ -1,5 +1,5 @@
-const REFRESH_MS = 15000;
-const GITHUB_PAGES_REFRESH_MS = 5000;
+const REFRESH_MS = 3000;
+const GITHUB_PAGES_REFRESH_MS = 3000;
 const OVERRIDES_REFRESH_MS = 30000;
 const SCHEDULE_REFRESH_MS = 300000;
 const UI_REFRESH_MS = 10000;
@@ -35,10 +35,15 @@ function assetUrl(name) {
 
 function setRefreshNote() {
   const queueNote = document.getElementById("queue-note");
-  if (queueNote) {
-    queueNote.textContent = isGitHubPages()
-      ? "Match your place # or join time from eecsoh"
-      : "Names visible when staff session is connected";
+  if (!queueNote) return;
+  if (samplePreviewActive) {
+    queueNote.textContent = "Sample preview active";
+    return;
+  }
+  if (preferShowNames && namesAvailable()) {
+    queueNote.textContent = "Student names visible";
+  } else {
+    queueNote.textContent = "Match join time on your phone";
   }
 }
 
@@ -587,6 +592,7 @@ function formatClock(isoString) {
   return new Date(isoString).toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
+    second: "2-digit",
   });
 }
 
@@ -624,18 +630,486 @@ function waitSecondsSince(joinedAt) {
   return (Date.now() - new Date(joinedAt).getTime()) / 1000;
 }
 
-function getUniqname(entry) {
-  if (entry.uniqname) return entry.uniqname;
-  if (entry.username) return entry.username;
-  const email = entry.email || entry.student_email;
-  if (email) return email.split("@")[0];
-  if (entry.name && !entry.name.includes(" ")) return entry.name;
+function formatDisplayName(rawName) {
+  if (!rawName || typeof rawName !== "string") return null;
+  const clean = rawName.replace(/\(.*?\)/g, "").trim();
+  if (!clean) return null;
+
+  // Handle "Last, First Middle" or "Last, First"
+  if (clean.includes(",")) {
+    const parts = clean.split(",");
+    const last = parts[0].trim();
+    const firstTokens = (parts[1] || "").trim().split(/\s+/);
+    const first = firstTokens[0] || "";
+    const lastInitial = last ? `${last[0].toUpperCase()}.` : "";
+    return `${first} ${lastInitial}`.trim();
+  }
+
+  // Handle "First Last" or "First Middle Last"
+  const tokens = clean.split(/\s+/);
+  if (tokens.length === 1) {
+    return tokens[0];
+  }
+  const first = tokens[0];
+  const last = tokens[tokens.length - 1].replace(/\.+$/, "");
+  const lastInitial = last ? `${last[0].toUpperCase()}.` : "";
+  return `${first} ${lastInitial}`.trim();
+}
+
+function formatFirstAndLast(first, last) {
+  first = (first || "").trim();
+  last = (last || "").trim();
+  if (first && last) {
+    const lastInitial = `${last.replace(/\.+$/, "")[0].toUpperCase()}.`;
+    return `${first} ${lastInitial}`;
+  }
+  if (first) return first;
+  if (last) return `${last[0].toUpperCase()}.`;
   return null;
 }
 
-function setUniqnameColumnVisible(visible) {
-  document.querySelectorAll(".col-uniqname").forEach((el) => {
+function getEntryUniqname(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  if (entry.uniqname) return String(entry.uniqname).trim().toLowerCase();
+  if (entry.username) return String(entry.username).trim().toLowerCase();
+  const email = entry.email || entry.student_email || entry.user?.email || entry.student?.email;
+  if (email) return String(email).split("@")[0].trim().toLowerCase();
+  if (entry.user?.uniqname) return String(entry.user.uniqname).trim().toLowerCase();
+  if (entry.user?.username) return String(entry.user.username).trim().toLowerCase();
+  if (entry.student?.uniqname) return String(entry.student.uniqname).trim().toLowerCase();
+  if (entry.student?.username) return String(entry.student.username).trim().toLowerCase();
+
+  // If entry.name is a single word without spaces, it could be a uniqname
+  if (entry.name && typeof entry.name === "string" && !entry.name.includes(" ") && !entry.name.includes(",")) {
+    return entry.name.trim().toLowerCase();
+  }
+  return null;
+}
+
+function studentDisplayName(uniqname, scheduleDataRef = scheduleData) {
+  if (!uniqname) return null;
+  const key = String(uniqname).trim().toLowerCase();
+  const studentNames = scheduleDataRef?.student_names ?? {};
+  if (studentNames[key]) return studentNames[key];
+  const staffNames = scheduleDataRef?.staff_names ?? {};
+  if (staffNames[key]) return formatDisplayName(staffNames[key]) || staffNames[key];
+  return null;
+}
+
+function getStudentDisplayName(entry, scheduleDataRef = scheduleData) {
+  if (!entry || typeof entry !== "object") return null;
+
+  // 1. Direct first_name and last_name on entry or nested user/student object
+  const firstName =
+    entry.first_name ||
+    entry.firstName ||
+    entry.user?.first_name ||
+    entry.user?.firstName ||
+    entry.student?.first_name;
+  const lastName =
+    entry.last_name ||
+    entry.lastName ||
+    entry.user?.last_name ||
+    entry.user?.lastName ||
+    entry.student?.last_name;
+  if (firstName || lastName) {
+    const fmt = formatFirstAndLast(firstName, lastName);
+    if (fmt) return fmt;
+  }
+
+  // 2. Direct name / display_name / full_name on entry or nested object
+  const rawName =
+    entry.name ||
+    entry.display_name ||
+    entry.full_name ||
+    entry.displayName ||
+    entry.fullName ||
+    entry.user?.name ||
+    entry.user?.display_name ||
+    entry.user?.full_name ||
+    entry.user?.displayName ||
+    entry.student?.name ||
+    entry.student?.display_name;
+  if (rawName && typeof rawName === "string") {
+    if (rawName.includes(" ") || rawName.includes(",")) {
+      const fmt = formatDisplayName(rawName);
+      if (fmt) return fmt;
+    }
+  }
+
+  // 3. Extract uniqname / username / email
+  const uniqname = getEntryUniqname(entry);
+
+  // 4. Look up in student roster
+  if (uniqname) {
+    const fromRoster = studentDisplayName(uniqname, scheduleDataRef);
+    if (fromRoster) return fromRoster;
+  }
+
+  // 5. If rawName was a single word token (e.g. "Aaron")
+  if (rawName && typeof rawName === "string" && rawName.trim()) {
+    return formatDisplayName(rawName.trim());
+  }
+
+  // 6. Fallback to uniqname if available
+  return uniqname || null;
+}
+
+function getUniqname(entry) {
+  return getEntryUniqname(entry);
+}
+
+const SHOW_NAMES_KEY = "engr101-show-names";
+let preferShowNames = localStorage.getItem(SHOW_NAMES_KEY) !== "0";
+let eecsohSessionConnected = false;
+let samplePreviewActive = false;
+
+function buildSampleQueue() {
+  const now = Date.now();
+  return {
+    open: true,
+    config: { cooldown: 600 },
+    queue: [
+      {
+        id: "sample-1",
+        id_timestamp: new Date(now - 14 * 60 * 1000).toISOString(),
+        helping: true,
+        pinned: false,
+        priority: 0,
+        name: "Sally Awuku",
+        uniqname: "sawuku",
+      },
+      {
+        id: "sample-2",
+        id_timestamp: new Date(now - 10 * 60 * 1000).toISOString(),
+        helping: false,
+        pinned: false,
+        priority: 0,
+        name: "Aaron Adams",
+        uniqname: "aaronad",
+      },
+      {
+        id: "sample-3",
+        id_timestamp: new Date(now - 7 * 60 * 1000).toISOString(),
+        helping: false,
+        pinned: false,
+        priority: 0,
+        name: "Omer Al-Khafaji",
+        uniqname: "omerah",
+      },
+      {
+        id: "sample-4",
+        id_timestamp: new Date(now - 4 * 60 * 1000).toISOString(),
+        helping: false,
+        pinned: true,
+        priority: 1,
+        name: "Wael Abbas",
+        uniqname: "waela",
+      },
+      {
+        id: "sample-5",
+        id_timestamp: new Date(now - 1 * 60 * 1000).toISOString(),
+        helping: false,
+        pinned: false,
+        priority: 0,
+        name: "Allison Charron",
+        uniqname: "charrona",
+      },
+    ],
+  };
+}
+
+function namesAvailable(data = queueData) {
+  const effective = samplePreviewActive ? buildSampleQueue() : data;
+  if (effective?._dashboard?.names_visible || effective?._dashboard?.uniqnames_visible) {
+    return true;
+  }
+  const queue = effective?.queue ?? [];
+  return queue.some((entry) => Boolean(getStudentDisplayName(entry, scheduleData)));
+}
+
+function setNameColumnVisible(visible) {
+  document.querySelectorAll(".col-name, .col-uniqname").forEach((el) => {
     el.hidden = !visible;
+  });
+}
+
+function setUniqnameColumnVisible(visible) {
+  setNameColumnVisible(visible);
+}
+
+function updateNameSwitchUI() {
+  const btn = document.getElementById("show-names") || document.getElementById("show-uniqnames");
+  const status = document.getElementById("name-status") || document.getElementById("uniqname-status");
+  if (!btn) return;
+
+  btn.setAttribute("aria-pressed", preferShowNames ? "true" : "false");
+  btn.classList.toggle("on", preferShowNames);
+
+  if (!status) return;
+  if (!preferShowNames) {
+    status.textContent = "Hidden";
+  } else if (namesAvailable() || (scheduleData?.student_names && Object.keys(scheduleData.student_names).length > 0)) {
+    status.textContent = "Showing";
+  } else if (eecsohSessionConnected) {
+    status.textContent = "Showing";
+  } else if (isGitHubPages()) {
+    status.textContent = "Showing";
+  } else {
+    status.textContent = "Showing";
+  }
+}
+
+function updateUniqnameSwitchUI() {
+  updateNameSwitchUI();
+}
+
+function buildEecsohBookmarklet() {
+  const dash = location.origin;
+  const code = `
+    (async()=>{
+      const dash=${JSON.stringify(dash)};
+      const cookie=document.cookie||"";
+      if(!cookie || !/session=/i.test(cookie)){
+        alert("No readable eecsoh session cookie found.\\n\\nIf you are signed in, the session cookie is HttpOnly — copy it from DevTools → Application → Cookies → session and paste it into the dashboard.");
+        return;
+      }
+      try{
+        const r=await fetch(dash+"/api/session",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({cookie}),
+          mode:"cors"
+        });
+        const j=await r.json().catch(()=>({}));
+        if(j.connected){
+          alert("Connected — student names should appear on the dashboard.");
+          try{ window.open(dash,"engr101-dashboard"); }catch(_){}
+        }else{
+          alert("Dashboard rejected the session cookie. Sign in on eecsoh as staff and try again.");
+        }
+      }catch(e){
+        alert("Could not reach the dashboard at "+dash+". Is it running?\\n\\n"+e);
+      }
+    })();
+  `.replace(/\n\s+/g, "");
+  return `javascript:${code}`;
+}
+
+function setupEecsohConnectUI() {
+  const bookmarklet = document.getElementById("eecsoh-bookmarklet");
+  if (bookmarklet) {
+    bookmarklet.href = buildEecsohBookmarklet();
+    bookmarklet.addEventListener("click", (event) => {
+      event.preventDefault();
+      alert(
+        "Open DevTools on eecsoh (Inspect → Application → Cookies),\ncopy the 'session' cookie, and paste it in the box below."
+      );
+    });
+  }
+
+  document.getElementById("open-eecsoh-btn")?.addEventListener("click", () => {
+    window.open(
+      "https://eecsoh.eecs.umich.edu/queues/1xHcWfn2KW5HHly5Y3rLA2g5kW2",
+      "_blank",
+      "noopener"
+    );
+  });
+}
+
+function updateSessionUI(sessionInfo = null) {
+  const statusBtn = document.getElementById("eecsoh-status-btn");
+  const statusText = document.getElementById("eecsoh-status-text");
+  const alertEl = document.getElementById("session-alert");
+
+  if (statusBtn && statusText) {
+    if (eecsohSessionConnected) {
+      statusBtn.classList.remove("disconnected");
+      statusBtn.classList.add("connected");
+      statusText.textContent = "eecsoh connected";
+      statusBtn.title = "Staff session active. Student identities are visible. Click to manage.";
+    } else {
+      statusBtn.classList.remove("connected");
+      statusBtn.classList.add("disconnected");
+      statusText.textContent = "Connect eecsoh";
+      statusBtn.title = "Click to connect your staff eecsoh session so student names appear.";
+    }
+  }
+
+  if (alertEl) {
+    if (samplePreviewActive) {
+      alertEl.hidden = false;
+      alertEl.innerHTML = `
+        <span>👀 Previewing queue with sample student names (Aaron A., Sally A., etc.).</span>
+        <button type="button" class="link-btn" id="session-alert-exit">Exit preview</button>
+      `;
+      document.getElementById("session-alert-exit")?.addEventListener("click", () => {
+        const previewBtn = document.getElementById("preview-toggle-btn");
+        if (previewBtn) previewBtn.click();
+      });
+    } else if (!isGitHubPages() && !eecsohSessionConnected) {
+      alertEl.hidden = false;
+      alertEl.innerHTML = `
+        <span>⚠️ eecsoh staff session not connected. Live student names require an active staff session.</span>
+        <button type="button" class="link-btn" id="session-alert-connect">Connect session</button>
+      `;
+      document.getElementById("session-alert-connect")?.addEventListener("click", () => {
+        openModal("eecsoh-session-modal");
+        document.getElementById("eecsoh-cookie")?.focus();
+      });
+    } else {
+      alertEl.hidden = true;
+    }
+  }
+}
+
+async function fetchEecsohSessionStatus() {
+  if (isGitHubPages()) {
+    eecsohSessionConnected = false;
+    updateSessionUI();
+    return { connected: false, names_visible: true, uniqnames_visible: true };
+  }
+  try {
+    const resp = await fetch("/api/session", { cache: "no-store" });
+    if (!resp.ok) {
+      eecsohSessionConnected = false;
+      updateSessionUI();
+      return { connected: false, names_visible: false, uniqnames_visible: false };
+    }
+    const data = await resp.json();
+    eecsohSessionConnected = Boolean(data.connected);
+    updateSessionUI(data);
+    return data;
+  } catch {
+    eecsohSessionConnected = false;
+    updateSessionUI();
+    return { connected: false, names_visible: false, uniqnames_visible: false };
+  }
+}
+
+async function saveEecsohSession(cookie) {
+  const resp = await fetch("/api/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cookie }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data.ok) {
+    throw new Error(data.error || `Could not save session (HTTP ${resp.status})`);
+  }
+  eecsohSessionConnected = Boolean(data.connected);
+  updateSessionUI(data);
+  return data;
+}
+
+async function ensureNamesLoaded() {
+  if (isGitHubPages()) {
+    updateNameSwitchUI();
+    setRefreshNote();
+    return false;
+  }
+
+  const status = await fetchEecsohSessionStatus();
+  if (status.connected) {
+    await fetchQueue();
+    return true;
+  }
+
+  openModal("eecsoh-session-modal");
+  const input = document.getElementById("eecsoh-cookie");
+  const errorEl = document.getElementById("eecsoh-session-error");
+  if (errorEl) errorEl.textContent = "";
+  if (input) {
+    input.value = "";
+    input.focus();
+  }
+  return false;
+}
+
+async function setShowNames(next) {
+  preferShowNames = Boolean(next);
+  localStorage.setItem(SHOW_NAMES_KEY, preferShowNames ? "1" : "0");
+  updateNameSwitchUI();
+  setRefreshNote();
+
+  if (preferShowNames) {
+    await ensureNamesLoaded();
+    if (queueData) render(queueData);
+    return;
+  }
+
+  if (queueData) render(queueData);
+}
+
+function initQueueControls() {
+  setupEecsohConnectUI();
+
+  const btn = document.getElementById("show-names") || document.getElementById("show-uniqnames");
+  if (btn) {
+    updateNameSwitchUI();
+    btn.addEventListener("click", () => {
+      setShowNames(!preferShowNames);
+    });
+  }
+
+  const sessionStatusBtn = document.getElementById("eecsoh-status-btn");
+  if (sessionStatusBtn) {
+    sessionStatusBtn.addEventListener("click", () => {
+      openModal("eecsoh-session-modal");
+      const input = document.getElementById("eecsoh-cookie");
+      if (input) input.focus();
+    });
+  }
+
+  const previewBtn = document.getElementById("preview-toggle-btn");
+  if (previewBtn) {
+    previewBtn.addEventListener("click", () => {
+      samplePreviewActive = !samplePreviewActive;
+      previewBtn.classList.toggle("active", samplePreviewActive);
+      previewBtn.textContent = samplePreviewActive ? "Exit sample preview" : "Preview sample queue";
+      updateSessionUI();
+      setRefreshNote();
+      if (queueData || samplePreviewActive) render(queueData);
+    });
+  }
+
+  const emptyPreviewBtn = document.getElementById("empty-preview-btn");
+  if (emptyPreviewBtn) {
+    emptyPreviewBtn.addEventListener("click", () => {
+      if (previewBtn) previewBtn.click();
+    });
+  }
+
+  const form = document.getElementById("eecsoh-session-form");
+  const errorEl = document.getElementById("eecsoh-session-error");
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (errorEl) errorEl.textContent = "";
+    const cookie = document.getElementById("eecsoh-cookie")?.value?.trim();
+    if (!cookie) {
+      if (errorEl) errorEl.textContent = "Paste your eecsoh session cookie from DevTools → Application → Cookies.";
+      return;
+    }
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const status = await saveEecsohSession(cookie);
+      if (!status.connected) {
+        throw new Error("Cookie saved but eecsoh did not accept it. Sign in on eecsoh as staff and try again.");
+      }
+      preferShowNames = true;
+      localStorage.setItem(SHOW_NAMES_KEY, "1");
+      closeModal("eecsoh-session-modal");
+      updateSessionUI(status);
+      await fetchQueue();
+      updateNameSwitchUI();
+      setRefreshNote();
+    } catch (err) {
+      if (errorEl) errorEl.textContent = err.message || "Could not connect eecsoh session.";
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
   });
 }
 
@@ -728,10 +1202,14 @@ function buildStudents(queue, cooldown, staffCount, helpingCount) {
   return sorted.map((entry, index) => {
     const isHelping = Boolean(entry.helping);
     const waitingIndex = sorted.slice(0, index).filter((item) => !item.helping).length;
+    const uniqname = getEntryUniqname(entry);
+    const studentName = getStudentDisplayName(entry, scheduleData);
 
     return {
       position: index + 1,
-      uniqname: getUniqname(entry),
+      ahead: waitingIndex,
+      name: studentName,
+      uniqname: uniqname,
       joinedAt: entry.id_timestamp,
       waitSeconds: waitSecondsSince(entry.id_timestamp),
       estimatedSeconds: isHelping
@@ -770,14 +1248,27 @@ function renderStaffList(staff, slot) {
     .join("");
 }
 
+function remainingDaySlots(daySchedule, hour, minute) {
+  const nowMins = hour * 60 + minute;
+  return daySchedule.filter((slot) => parseTimeToMinutes(slot.time) + 30 > nowMins);
+}
+
 function renderTimeline(daySchedule, currentSlot, day) {
   const timeline = document.getElementById("timeline");
+  const { hour, minute } = nowParts();
+  const upcoming = remainingDaySlots(daySchedule, hour, minute);
+
   if (!daySchedule.length) {
     timeline.innerHTML = '<p class="empty-note">No office hours scheduled today.</p>';
     return;
   }
 
-  timeline.innerHTML = daySchedule
+  if (!upcoming.length) {
+    timeline.innerHTML = '<p class="empty-note">No more coverage blocks left today.</p>';
+    return;
+  }
+
+  timeline.innerHTML = upcoming
     .map((slot) => {
       const effective = applyOverrideToSlot(day, slot) ?? slot;
       const active = currentSlot && currentSlot.time === slot.time;
@@ -799,8 +1290,11 @@ function renderTimeline(daySchedule, currentSlot, day) {
 }
 
 function render(data) {
-  const queue = data.queue ?? [];
-  const cooldown = data.config?.cooldown ?? 600;
+  const effectiveData = samplePreviewActive ? buildSampleQueue() : data;
+  if (!effectiveData) return;
+
+  const queue = effectiveData.queue ?? [];
+  const cooldown = effectiveData.config?.cooldown ?? 600;
   const { day, dayLabel, daySchedule, slot, staff, staffCount } = getScheduleContext();
   const students = buildStudents(queue, cooldown, staffCount, queue.filter((e) => e.helping).length);
   const waiting = students.filter((s) => s.status === "waiting");
@@ -812,8 +1306,8 @@ function render(data) {
   const nextEst = waiting.length ? waiting[0].estimatedSeconds : 0;
 
   const statusEl = document.getElementById("queue-status");
-  statusEl.innerHTML = `<span class="status-dot"></span><span>${data.open ? "Queue Open" : "Queue Closed"}</span>`;
-  statusEl.className = `status-pill ${data.open ? "open" : "closed"}`;
+  statusEl.innerHTML = `<span class="status-dot"></span><span>${effectiveData.open ? "Queue Open" : "Queue Closed"}</span>`;
+  statusEl.className = `status-pill ${effectiveData.open ? "open" : "closed"}`;
 
   document.getElementById("slot-label").textContent = slot
     ? `${formatDateLabel()} · ${formatSlotRange(slot.time)}`
@@ -835,15 +1329,20 @@ function render(data) {
   renderStaffList(staff, slot);
   renderTimeline(daySchedule, slot, day);
 
-  const showUniqnames = data._dashboard?.uniqnames_visible ?? false;
-  setUniqnameColumnVisible(showUniqnames);
+  const showNames = preferShowNames;
+  setNameColumnVisible(showNames);
+  updateNameSwitchUI();
+  setRefreshNote();
 
   const hintEl = document.getElementById("queue-hint");
   if (hintEl) {
-    hintEl.hidden = students.length === 0;
-    hintEl.textContent = showUniqnames
-      ? "Staff view — student names are shown when your eecsoh session is connected."
-      : "On eecsoh, your phone shows your place #. On this board, find the same number — or match the join time shown for each row.";
+    if (students.length > 0 && !(preferShowNames && namesAvailable(effectiveData))) {
+      hintEl.hidden = false;
+      hintEl.textContent =
+        "Find yourself by join time: open eecsoh on your phone and match the time you joined to the first column.";
+    } else {
+      hintEl.hidden = true;
+    }
   }
 
   const tbody = document.getElementById("queue-body");
@@ -870,13 +1369,25 @@ function render(data) {
       flags.push(`<span class="badge priority">Priority ${sign}${student.priority}</span>`);
     }
 
+    const aheadLabel =
+      student.status === "helping"
+        ? "being helped"
+        : student.ahead === 0
+          ? "you're next"
+          : `${student.ahead} ahead`;
+
+    const displayName = student.name ?? student.uniqname ?? "—";
+
     tr.innerHTML = `
-      <td class="position">#${student.position}</td>
-      ${showUniqnames ? `<td class="uniqname col-uniqname">${student.uniqname ?? "—"}</td>` : ""}
       <td class="join-time">
         <span class="join-clock">${formatClock(student.joinedAt)}</span>
         <span class="join-relative" data-join="${student.joinedAt}">${formatRelativeJoin(student.joinedAt)}</span>
       </td>
+      <td class="position">
+        <span class="position-num">#${student.position}</span>
+        <span class="position-ahead">${aheadLabel}</span>
+      </td>
+      ${showNames ? `<td class="student-name col-name col-uniqname">${displayName}</td>` : ""}
       <td class="wait-time" data-wait="${student.joinedAt}">${formatDuration(student.waitSeconds)}</td>
       <td>${student.status === "helping" ? "—" : `~${formatDuration(student.estimatedSeconds)}`}</td>
       <td>
@@ -886,6 +1397,7 @@ function render(data) {
     `;
     tbody.appendChild(tr);
   });
+  setNameColumnVisible(showNames);
 }
 
 function tickWaitTimes() {
@@ -898,9 +1410,17 @@ function tickWaitTimes() {
 }
 
 async function fetchSchedule() {
-  const url = isGitHubPages() ? assetUrl("schedule.json") : "/api/schedule";
-  const resp = await fetch(`${url}?t=${Date.now()}`, { cache: "no-store" });
-  if (!resp.ok) throw new Error("Could not load staff schedule");
+  let resp;
+  try {
+    const url = isGitHubPages() ? assetUrl("schedule.json") : "/api/schedule";
+    resp = await fetch(`${url}?t=${Date.now()}`, { cache: "no-store" });
+    if (!resp.ok && !isGitHubPages()) {
+      resp = await fetch(`schedule.json?t=${Date.now()}`, { cache: "no-store" });
+    }
+  } catch {
+    resp = await fetch(`schedule.json?t=${Date.now()}`, { cache: "no-store" });
+  }
+  if (!resp || !resp.ok) throw new Error("Could not load staff schedule");
   scheduleData = await resp.json();
   staffOverrides.overrides = normalizeOverrides(staffOverrides.overrides);
   saveLocalStaffOverrides(staffOverrides.overrides);
@@ -956,21 +1476,35 @@ async function fetchQueue() {
         data = await fetchQueueFromSnapshot();
       }
     } else {
-      const resp = await fetch("/api/queue", { cache: "no-store" });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${resp.status}`);
+      let resp;
+      try {
+        resp = await fetch("/api/queue", { cache: "no-store" });
+      } catch {
+        resp = null;
       }
-      data = await resp.json();
+
+      if (resp && resp.ok) {
+        data = await resp.json();
+      } else {
+        try {
+          data = await fetchQueueFromSnapshot();
+        } catch {
+          if (resp) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.error || `HTTP ${resp.status}`);
+          }
+          throw new Error("Could not load queue data");
+        }
+      }
     }
     queueData = data;
     lastUpdated = new Date();
     errorEl.hidden = true;
     render(queueData);
   } catch (err) {
-    if (queueData) {
+    if (queueData || samplePreviewActive) {
       errorEl.hidden = true;
-      render(queueData);
+      render(queueData || buildSampleQueue());
     } else {
       errorEl.hidden = false;
       errorEl.textContent = `Could not load queue data: ${err.message}`;
@@ -982,9 +1516,12 @@ async function fetchQueue() {
 
 async function init() {
   initTheme();
+  initQueueControls();
   setRefreshNote();
   updateStaffAuthUI();
   tickLiveClock();
+  await fetchEecsohSessionStatus();
+  updateNameSwitchUI();
 
   try {
     await fetchSchedule();
@@ -992,6 +1529,9 @@ async function init() {
     document.getElementById("staff-list").innerHTML =
       `<p class="empty-note">${err.message}</p>`;
   }
+
+  updateNameSwitchUI();
+  setRefreshNote();
 
   try {
     await fetchStaffOverrides();
@@ -1021,6 +1561,10 @@ document.addEventListener("visibilitychange", () => {
     fetchQueue();
     refreshStaffOverrides();
   }
+});
+
+window.addEventListener("focus", () => {
+  fetchQueue();
 });
 
 setInterval(tickWaitTimes, TICK_MS);

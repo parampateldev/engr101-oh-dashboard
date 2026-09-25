@@ -18,6 +18,32 @@ OH_COLS = range(10, 16)
 TOTAL_COL = 16
 
 
+import re
+
+
+def format_display_name(raw_name: str) -> str:
+    """Format 'Last, First Middle' or 'First Last' into 'First L.' (first name and first initial of last name)."""
+    if not raw_name or not isinstance(raw_name, str):
+        return ""
+    cleaned = re.sub(r"\(.*?\)", "", raw_name).strip()
+    if not cleaned:
+        return ""
+    if "," in cleaned:
+        parts = [p.strip() for p in cleaned.split(",", 1)]
+        last = parts[0].strip()
+        first_tokens = parts[1].split()
+        first = first_tokens[0] if first_tokens else ""
+        last_initial = f"{last[0].upper()}." if last else ""
+        return f"{first} {last_initial}".strip()
+    tokens = cleaned.split()
+    if len(tokens) == 1:
+        return tokens[0]
+    first = tokens[0]
+    last = tokens[-1].rstrip(".")
+    last_initial = f"{last[0].upper()}." if last else ""
+    return f"{first} {last_initial}".strip()
+
+
 def parse_staff_names(wb) -> dict:
     if "Overview" not in wb.sheetnames:
         return {}
@@ -39,9 +65,34 @@ def parse_staff_names(wb) -> dict:
     return names
 
 
+def parse_student_names(wb) -> dict:
+    sheet_name = next((s for s in wb.sheetnames if "student" in s.lower() and "roster" in s.lower()), None)
+    if not sheet_name:
+        return {}
+    ws = wb[sheet_name]
+    students = {}
+    for row in ws.iter_rows(values_only=True):
+        if not row or len(row) < 2:
+            continue
+        name, uniq = row[0], row[1]
+        if (
+            not name
+            or not uniq
+            or not isinstance(name, str)
+            or not isinstance(uniq, str)
+            or uniq.strip() in {"SIS Login ID", "Uniqname", "uniqname"}
+        ):
+            continue
+        fmt = format_display_name(name)
+        if fmt:
+            students[uniq.strip().lower()] = fmt
+    return students
+
+
 def parse_schedule(xlsx_path: Path) -> dict:
     wb = openpyxl.load_workbook(xlsx_path, data_only=True)
     staff_names = parse_staff_names(wb)
+    student_names = parse_student_names(wb)
     ws = wb["The ScheduleTM"]
     schedule = {}
 
@@ -90,6 +141,7 @@ def parse_schedule(xlsx_path: Path) -> dict:
         "source": xlsx_path.name,
         "timezone": "America/Detroit",
         "staff_names": staff_names,
+        "student_names": student_names,
         "schedule": schedule,
     }
 

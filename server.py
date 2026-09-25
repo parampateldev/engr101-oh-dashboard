@@ -27,9 +27,55 @@ def normalize_cookie(cookie):
     cookie = cookie.strip()
     if not cookie:
         return None
-    if "=" not in cookie:
-        return f"session={cookie}"
-    return cookie
+
+    # Prefer an explicit session= pair from document.cookie / pasted headers.
+    pairs = [part.strip() for part in cookie.split(";") if part.strip()]
+    for part in pairs:
+        if part.lower().startswith("session="):
+            value = part.split("=", 1)[1].strip()
+            return f"session={value}" if value else None
+
+    # Bare token with no key=value — treat as the session value.
+    if len(pairs) == 1 and "=" not in pairs[0]:
+        return f"session={pairs[0]}"
+
+    # Malformed input (e.g. my_session=value) — do not forward as a Cookie header.
+    return None
+
+
+def identity_fields(entry):
+    if not isinstance(entry, dict):
+        return {}
+
+    found = {}
+    keys = (
+        "email",
+        "uniqname",
+        "username",
+        "student_email",
+        "name",
+        "first_name",
+        "last_name",
+        "full_name",
+        "display_name",
+        "firstName",
+        "lastName",
+        "displayName",
+    )
+    for key in keys:
+        value = entry.get(key)
+        if value:
+            found[key] = value
+
+    for nest_key in ("user", "student", "owner", "account", "profile", "creator", "member"):
+        nested = entry.get(nest_key)
+        if isinstance(nested, dict):
+            found.update(identity_fields(nested))
+    return found
+
+
+def entry_has_identity(entry):
+    return bool(identity_fields(entry))
 
 
 def load_session():
@@ -63,19 +109,46 @@ def get_active_cookie(handler=None):
     return stored_session
 
 
+try:
+    import certifi
+    DEFAULT_CAFILE = certifi.where()
+except ImportError:
+    DEFAULT_CAFILE = None
+
+
 def session_status(cookie=None):
     cookie = normalize_cookie(cookie)
     if not cookie:
-        return {"connected": False, "uniqnames_visible": False}
+        return {"connected": False, "names_visible": False, "uniqnames_visible": False}
+
+    # Verify session against authenticated user endpoint
+    try:
+        user_info, user_status = fetch_json("https://eecsoh.eecs.umich.edu/api/users/@me", cookie=cookie)
+        if user_status == 200 and isinstance(user_info, dict):
+            return {
+                "connected": True,
+                "names_visible": True,
+                "uniqnames_visible": True,
+                "user": user_info.get("email") or user_info.get("name") or True,
+            }
+        return {
+            "connected": False,
+            "invalid": True,
+            "expired": True,
+            "names_visible": False,
+            "uniqnames_visible": False,
+        }
+    except Exception:
+        pass
 
     try:
         data, status = fetch_json(QUEUE_API, cookie=cookie)
-        if status != 200:
-            return {"connected": False, "uniqnames_visible": False, "invalid": True}
+        if status in (401, 403) or status != 200:
+            return {"connected": False, "names_visible": False, "uniqnames_visible": False, "invalid": True}
 
         queue = data.get("queue") or []
         if any(entry_has_identity(entry) for entry in queue):
-            return {"connected": True, "uniqnames_visible": True}
+            return {"connected": True, "names_visible": True, "uniqnames_visible": True}
 
         if queue:
             entry_id = queue[0].get("id")
@@ -85,11 +158,18 @@ def session_status(cookie=None):
                     cookie=cookie,
                 )
                 if detail_status == 200 and entry_has_identity(detail):
-                    return {"connected": True, "uniqnames_visible": True}
+                    return {"connected": True, "names_visible": True, "uniqnames_visible": True}
+                if detail_status in (401, 403):
+                    return {
+                        "connected": False,
+                        "names_visible": False,
+                        "uniqnames_visible": False,
+                        "staff_required": True,
+                    }
 
-        return {"connected": True, "uniqnames_visible": False}
+        return {"connected": False, "names_visible": False, "uniqnames_visible": False}
     except Exception:
-        return {"connected": False, "uniqnames_visible": False, "invalid": True}
+        return {"connected": False, "names_visible": False, "uniqnames_visible": False, "invalid": True}
 
 
 def fetch_json(url, cookie=None):
@@ -98,7 +178,7 @@ def fetch_json(url, cookie=None):
         headers["Cookie"] = cookie
 
     try:
-        context = ssl.create_default_context()
+        context = ssl.create_default_context(cafile=DEFAULT_CAFILE) if DEFAULT_CAFILE else ssl.create_default_context()
         request = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(request, timeout=10, context=context) as resp:
             return json.loads(resp.read().decode()), resp.status
@@ -129,26 +209,20 @@ def fetch_json(url, cookie=None):
         raise
 
 
-def entry_has_identity(entry):
-    return bool(
-        entry.get("email")
-        or entry.get("uniqname")
-        or entry.get("username")
-        or entry.get("student_email")
-        or entry.get("name")
-    )
-
-
 def enrich_queue_entries(data, cookie):
     queue = data.get("queue") or []
     if not queue or not cookie:
         return data, False
 
     if any(entry_has_identity(entry) for entry in queue):
+        for i, entry in enumerate(queue):
+            queue[i] = {**entry, **identity_fields(entry)}
+        data["queue"] = queue
         return data, True
 
     enriched = []
     visible = False
+    staff_blocked = False
     for entry in queue:
         entry_id = entry.get("id")
         if not entry_id:
@@ -164,14 +238,20 @@ def enrich_queue_entries(data, cookie):
             enriched.append(entry)
             continue
 
+        if status in (401, 403):
+            staff_blocked = True
+            enriched.append(entry)
+            continue
+
         if status == 200 and isinstance(detail, dict):
-            merged = {**entry, **detail}
+            merged = {**entry, **detail, **identity_fields(detail)}
             enriched.append(merged)
             visible = visible or entry_has_identity(merged)
         else:
             enriched.append(entry)
 
     data["queue"] = enriched
+    data["_dashboard_meta"] = {"staff_required": staff_blocked and not visible}
     return data, visible
 
 
@@ -179,14 +259,33 @@ def fetch_queue_data(cookie=None):
     cookie = normalize_cookie(cookie)
     data, _ = fetch_json(QUEUE_API, cookie=cookie)
 
-    authenticated = bool(cookie)
-    uniqnames_visible = False
+    authenticated = False
+    names_visible = False
+    staff_required = False
+    session_expired = False
+
     if cookie:
-        data, uniqnames_visible = enrich_queue_entries(data, cookie)
+        try:
+            user_info, user_status = fetch_json("https://eecsoh.eecs.umich.edu/api/users/@me", cookie=cookie)
+            if user_status == 200:
+                authenticated = True
+                data, names_visible = enrich_queue_entries(data, cookie)
+                meta = data.pop("_dashboard_meta", {}) or {}
+                staff_required = bool(meta.get("staff_required"))
+                names_visible = not staff_required
+            elif user_status in (401, 403):
+                session_expired = True
+            else:
+                data, names_visible = enrich_queue_entries(data, cookie)
+        except Exception:
+            data, names_visible = enrich_queue_entries(data, cookie)
 
     data["_dashboard"] = {
         "authenticated": authenticated,
-        "uniqnames_visible": uniqnames_visible,
+        "session_expired": session_expired,
+        "names_visible": names_visible,
+        "uniqnames_visible": names_visible,
+        "staff_required": staff_required,
     }
     return data
 
@@ -212,10 +311,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def request_path(self):
         return urlparse(self.path).path
 
-    def _send_json(self, status, payload, cors=False):
+    def _send_json(self, status, payload, cors=False, send_body=True):
         body = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
         if cors:
             origin = self.headers.get("Origin", "")
             if "eecsoh.eecs.umich.edu" in origin:
@@ -224,9 +325,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        if send_body:
+            self.wfile.write(body)
 
-    def _send_file(self, path, content_type):
+    def _send_file(self, path, content_type, send_body=True):
         if not path.is_file():
             self.send_error(404)
             return
@@ -235,13 +337,17 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        if send_body:
+            self.wfile.write(body)
 
     def _read_json_body(self):
         length = int(self.headers.get("Content-Length", 0))
         if length <= 0:
             return {}
         return json.loads(self.rfile.read(length).decode())
+
+    def do_HEAD(self):
+        self.do_GET(send_body=False)
 
     def do_OPTIONS(self):
         if self.request_path() == "/api/session":
@@ -293,31 +399,31 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
         self.send_error(404)
 
-    def do_GET(self):
+    def do_GET(self, send_body=True):
         path = self.request_path()
 
         if path == "/api/session":
-            self._send_json(200, session_status(get_active_cookie(self)))
+            self._send_json(200, session_status(get_active_cookie(self)), send_body=send_body)
             return
 
         if path == "/api/queue":
             cookie = get_active_cookie(self)
             try:
-                self._send_json(200, fetch_queue_data(cookie=cookie))
+                self._send_json(200, fetch_queue_data(cookie=cookie), send_body=send_body)
             except (urllib.error.URLError, ssl.SSLError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
-                self._send_json(502, {"error": f"Failed to fetch queue data: {exc}"})
+                self._send_json(502, {"error": f"Failed to fetch queue data: {exc}"}, send_body=send_body)
             return
 
         if path == "/api/schedule":
             schedule_path = ROOT / "schedule.json"
             if not schedule_path.is_file():
-                self._send_json(404, {"error": "schedule.json not found. Run parse_schedule.py first."})
+                self._send_json(404, {"error": "schedule.json not found. Run parse_schedule.py first."}, send_body=send_body)
                 return
-            self._send_file(schedule_path, "application/json; charset=utf-8")
+            self._send_file(schedule_path, "application/json; charset=utf-8", send_body=send_body)
             return
 
         if path == "/api/staff-overrides":
-            self._send_json(200, load_staff_overrides())
+            self._send_json(200, load_staff_overrides(), send_body=send_body)
             return
 
         routes = {
@@ -327,10 +433,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "/app.js": ("app.js", "application/javascript; charset=utf-8"),
             "/staff-config.js": ("staff-config.js", "application/javascript; charset=utf-8"),
             "/queue-proxy-config.js": ("queue-proxy-config.js", "application/javascript; charset=utf-8"),
+            "/schedule.json": ("schedule.json", "application/json; charset=utf-8"),
+            "/queue-snapshot.json": ("queue-snapshot.json", "application/json; charset=utf-8"),
         }
         if path in routes:
             filename, content_type = routes[path]
-            self._send_file(ROOT / filename, content_type)
+            self._send_file(ROOT / filename, content_type, send_body=send_body)
             return
 
         self.send_error(404)

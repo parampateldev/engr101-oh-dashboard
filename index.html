@@ -56,6 +56,38 @@
       <div class="toolbar">
         <div class="toolbar-left">
           <span class="toolbar-item">Updated <strong id="last-updated">—</strong></span>
+          <button
+            type="button"
+            class="name-switch on"
+            id="show-names"
+            aria-pressed="true"
+            title="Show or hide student names in the queue"
+          >
+            <span class="name-switch-track" aria-hidden="true">
+              <span class="name-switch-thumb"></span>
+            </span>
+            <span class="name-switch-copy">
+              <span class="name-switch-label">Show names</span>
+              <span class="name-switch-status" id="name-status">Showing</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="ghost-btn session-status-btn disconnected"
+            id="eecsoh-status-btn"
+            title="Click to connect your staff eecsoh session"
+          >
+            <span class="status-dot"></span>
+            <span id="eecsoh-status-text">Connect eecsoh</span>
+          </button>
+          <button
+            type="button"
+            class="ghost-btn preview-btn"
+            id="preview-toggle-btn"
+            title="Preview queue with sample student names"
+          >
+            Preview sample queue
+          </button>
         </div>
         <a
           class="sync-btn"
@@ -124,23 +156,27 @@
         <section class="panel queue-panel">
           <div class="panel-header">
             <h2>Queue</h2>
-            <span class="panel-tag" id="queue-note">Student names are on eecsoh</span>
+            <span class="panel-tag" id="queue-note">Match join time on your phone</span>
           </div>
 
+          <div id="session-alert" class="session-alert" hidden></div>
           <div id="error-state" class="error-state" hidden></div>
           <p id="queue-hint" class="queue-hint" hidden></p>
           <div id="empty-state" class="empty-state" hidden>
             <p class="empty-title">Queue is empty</p>
-            <p class="empty-note">Join on eecsoh — your phone will show your place # and join time to find yourself here.</p>
+            <p class="empty-note">Students will appear here when they join on eecsoh.</p>
+            <button type="button" class="ghost-btn" id="empty-preview-btn" style="margin-top: 0.85rem; font-size: 0.85rem;">
+              Preview queue with sample student names
+            </button>
           </div>
 
           <div class="table-wrap">
             <table id="queue-table">
               <thead>
                 <tr>
+                  <th>Joined — match your phone</th>
                   <th>Place</th>
-                  <th id="uniqname-header" class="col-uniqname" hidden>Name</th>
-                  <th>Joined at</th>
+                  <th id="name-header" class="col-name col-uniqname">Name</th>
                   <th>Waiting</th>
                   <th>Est. help</th>
                   <th>Status</th>
@@ -168,6 +204,50 @@
           <p id="staff-login-error" class="field-error"></p>
           <button type="submit" class="sync-btn modal-submit">Log in</button>
         </form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="eecsoh-session-modal" hidden>
+      <div class="modal modal-wide" role="dialog" aria-labelledby="eecsoh-session-title">
+        <div class="modal-header">
+          <h2 id="eecsoh-session-title">Show student names</h2>
+          <button type="button" class="modal-close" data-close-modal="eecsoh-session-modal" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-note">
+            Browsers protect eecsoh cookies with HttpOnly. To connect, open eecsoh as staff,
+            copy your <code>session</code> cookie from DevTools, and paste it below.
+          </p>
+
+          <ol class="connect-steps">
+            <li>
+              <button type="button" class="sync-btn" id="open-eecsoh-btn">1. Open eecsoh &amp; sign in as staff</button>
+            </li>
+            <li>
+              <p class="modal-note" style="margin: 0.75rem 0 0.4rem">
+                2. Drag this to your bookmarks bar, then click it while on the eecsoh tab:
+              </p>
+              <a id="eecsoh-bookmarklet" class="bookmarklet-link" href="#">Allow eecsoh cookies → dashboard</a>
+            </li>
+            <li>
+              <p class="modal-note" style="margin: 0.75rem 0 0.4rem">
+                3. Or paste the <code>session</code> cookie manually:
+              </p>
+              <form id="eecsoh-session-form">
+                <label class="field-label" for="eecsoh-cookie">Session cookie</label>
+                <input
+                  id="eecsoh-cookie"
+                  class="field-input"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="session=… (or paste full document.cookie)"
+                />
+                <p id="eecsoh-session-error" class="field-error"></p>
+                <button type="submit" class="ghost-btn modal-submit">Connect with pasted cookie</button>
+              </form>
+            </li>
+          </ol>
+        </div>
       </div>
     </div>
 
