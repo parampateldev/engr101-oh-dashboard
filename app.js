@@ -36,10 +36,6 @@ function assetUrl(name) {
 function setRefreshNote() {
   const queueNote = document.getElementById("queue-note");
   if (!queueNote) return;
-  if (samplePreviewActive) {
-    queueNote.textContent = "Sample preview active";
-    return;
-  }
   if (preferShowNames && namesAvailable()) {
     queueNote.textContent = "Student names visible";
   } else {
@@ -762,69 +758,12 @@ function getUniqname(entry) {
 const SHOW_NAMES_KEY = "engr101-show-names";
 let preferShowNames = localStorage.getItem(SHOW_NAMES_KEY) !== "0";
 let eecsohSessionConnected = false;
-let samplePreviewActive = false;
-
-function buildSampleQueue() {
-  const now = Date.now();
-  return {
-    open: true,
-    config: { cooldown: 600 },
-    queue: [
-      {
-        id: "sample-1",
-        id_timestamp: new Date(now - 14 * 60 * 1000).toISOString(),
-        helping: true,
-        pinned: false,
-        priority: 0,
-        name: "Sally Awuku",
-        uniqname: "sawuku",
-      },
-      {
-        id: "sample-2",
-        id_timestamp: new Date(now - 10 * 60 * 1000).toISOString(),
-        helping: false,
-        pinned: false,
-        priority: 0,
-        name: "Aaron Adams",
-        uniqname: "aaronad",
-      },
-      {
-        id: "sample-3",
-        id_timestamp: new Date(now - 7 * 60 * 1000).toISOString(),
-        helping: false,
-        pinned: false,
-        priority: 0,
-        name: "Omer Al-Khafaji",
-        uniqname: "omerah",
-      },
-      {
-        id: "sample-4",
-        id_timestamp: new Date(now - 4 * 60 * 1000).toISOString(),
-        helping: false,
-        pinned: true,
-        priority: 1,
-        name: "Wael Abbas",
-        uniqname: "waela",
-      },
-      {
-        id: "sample-5",
-        id_timestamp: new Date(now - 1 * 60 * 1000).toISOString(),
-        helping: false,
-        pinned: false,
-        priority: 0,
-        name: "Allison Charron",
-        uniqname: "charrona",
-      },
-    ],
-  };
-}
 
 function namesAvailable(data = queueData) {
-  const effective = samplePreviewActive ? buildSampleQueue() : data;
-  if (effective?._dashboard?.names_visible || effective?._dashboard?.uniqnames_visible) {
+  if (data?._dashboard?.names_visible || data?._dashboard?.uniqnames_visible) {
     return true;
   }
-  const queue = effective?.queue ?? [];
+  const queue = data?.queue ?? [];
   return queue.some((entry) => Boolean(getStudentDisplayName(entry, scheduleData)));
 }
 
@@ -947,17 +886,7 @@ function updateSessionUI(sessionInfo = null) {
   }
 
   if (alertEl) {
-    if (samplePreviewActive) {
-      alertEl.hidden = false;
-      alertEl.innerHTML = `
-        <span>👀 Previewing queue with sample student names (Aaron A., Sally A., etc.).</span>
-        <button type="button" class="link-btn" id="session-alert-exit">Exit preview</button>
-      `;
-      document.getElementById("session-alert-exit")?.addEventListener("click", () => {
-        const previewBtn = document.getElementById("preview-toggle-btn");
-        if (previewBtn) previewBtn.click();
-      });
-    } else if (!isGitHubPages() && !eecsohSessionConnected) {
+    if (!isGitHubPages() && !eecsohSessionConnected) {
       alertEl.hidden = false;
       alertEl.innerHTML = `
         <span>⚠️ eecsoh staff session not connected. Live student names require an active staff session.</span>
@@ -1074,25 +1003,6 @@ function initQueueControls() {
       openModal("eecsoh-session-modal");
       const input = document.getElementById("eecsoh-cookie");
       if (input) input.focus();
-    });
-  }
-
-  const previewBtn = document.getElementById("preview-toggle-btn");
-  if (previewBtn) {
-    previewBtn.addEventListener("click", () => {
-      samplePreviewActive = !samplePreviewActive;
-      previewBtn.classList.toggle("active", samplePreviewActive);
-      previewBtn.textContent = samplePreviewActive ? "Exit sample preview" : "Preview sample queue";
-      updateSessionUI();
-      setRefreshNote();
-      if (queueData || samplePreviewActive) render(queueData);
-    });
-  }
-
-  const emptyPreviewBtn = document.getElementById("empty-preview-btn");
-  if (emptyPreviewBtn) {
-    emptyPreviewBtn.addEventListener("click", () => {
-      if (previewBtn) previewBtn.click();
     });
   }
 
@@ -1306,11 +1216,10 @@ function renderTimeline(daySchedule, currentSlot, day) {
 }
 
 function render(data) {
-  const effectiveData = samplePreviewActive ? buildSampleQueue() : data;
-  if (!effectiveData) return;
+  if (!data) return;
 
-  const queue = effectiveData.queue ?? [];
-  const cooldown = effectiveData.config?.cooldown ?? 600;
+  const queue = data.queue ?? [];
+  const cooldown = data.config?.cooldown ?? 600;
   const { day, dayLabel, daySchedule, slot, staff, staffCount } = getScheduleContext();
   const students = buildStudents(queue, cooldown, staffCount, queue.filter((e) => e.helping).length);
   const waiting = students.filter((s) => s.status === "waiting");
@@ -1322,8 +1231,8 @@ function render(data) {
   const nextEst = waiting.length ? waiting[0].estimatedSeconds : 0;
 
   const statusEl = document.getElementById("queue-status");
-  statusEl.innerHTML = `<span class="status-dot"></span><span>${effectiveData.open ? "Queue Open" : "Queue Closed"}</span>`;
-  statusEl.className = `status-pill ${effectiveData.open ? "open" : "closed"}`;
+  statusEl.innerHTML = `<span class="status-dot"></span><span>${data.open ? "Queue Open" : "Queue Closed"}</span>`;
+  statusEl.className = `status-pill ${data.open ? "open" : "closed"}`;
 
   document.getElementById("slot-label").textContent = slot
     ? `${formatDateLabel()} · ${formatSlotRange(slot.time)}`
@@ -1352,7 +1261,7 @@ function render(data) {
 
   const hintEl = document.getElementById("queue-hint");
   if (hintEl) {
-    if (students.length > 0 && !(preferShowNames && namesAvailable(effectiveData))) {
+    if (students.length > 0 && !(preferShowNames && namesAvailable(data))) {
       hintEl.hidden = false;
       hintEl.textContent =
         "Find yourself by join time: open eecsoh on your phone and match the time you joined to the first column.";
@@ -1518,9 +1427,9 @@ async function fetchQueue() {
     errorEl.hidden = true;
     render(queueData);
   } catch (err) {
-    if (queueData || samplePreviewActive) {
+    if (queueData) {
       errorEl.hidden = true;
-      render(queueData || buildSampleQueue());
+      render(queueData);
     } else {
       errorEl.hidden = false;
       errorEl.textContent = `Could not load queue data: ${err.message}`;
