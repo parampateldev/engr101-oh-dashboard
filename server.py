@@ -6,6 +6,7 @@ import os
 import shutil
 import ssl
 import subprocess
+import sys
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -282,6 +283,7 @@ def fetch_queue_data(cookie=None):
 
     data["_dashboard"] = {
         "authenticated": authenticated,
+        "connected": authenticated,
         "session_expired": session_expired,
         "names_visible": names_visible,
         "uniqnames_visible": names_visible,
@@ -444,7 +446,25 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_error(404)
 
 
+def update_snapshot():
+    load_session()
+    cookie = get_active_cookie()
+    try:
+        data = fetch_queue_data(cookie=cookie)
+        snapshot_path = ROOT / "queue-snapshot.json"
+        snapshot_path.write_text(json.dumps(data) + "\n")
+        auth = data.get("_dashboard", {}).get("authenticated")
+        print(f"Updated {snapshot_path} (authenticated: {auth})")
+    except Exception as exc:
+        print(f"Failed to fetch queue snapshot: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("--snapshot", "snapshot"):
+        update_snapshot()
+        return
+
     load_session()
     server = HTTPServer(("127.0.0.1", PORT), DashboardHandler)
     print(f"ENGR101 dashboard running at http://127.0.0.1:{PORT}")

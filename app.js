@@ -867,16 +867,16 @@ function updateSessionUI(sessionInfo = null) {
   }
 
   if (statusBtn && statusText) {
-    if (isGitHubPages()) {
-      statusBtn.classList.remove("connected", "disconnected");
-      statusBtn.classList.add("gh-pages-mode");
-      statusText.textContent = "Staff mode: localhost:8080";
-      statusBtn.title = "GitHub Pages is a static view. For live staff session and names, run ./start.sh and open http://localhost:8080.";
-    } else if (eecsohSessionConnected) {
+    if (eecsohSessionConnected) {
       statusBtn.classList.remove("disconnected", "gh-pages-mode");
       statusBtn.classList.add("connected");
       statusText.textContent = "eecsoh connected";
       statusBtn.title = "Staff session active. Student identities are visible. Click to manage.";
+    } else if (isGitHubPages()) {
+      statusBtn.classList.remove("connected", "disconnected");
+      statusBtn.classList.add("gh-pages-mode");
+      statusText.textContent = "Connecting staff session…";
+      statusBtn.title = "Connecting staff session via GitHub snapshot.";
     } else {
       statusBtn.classList.remove("connected", "gh-pages-mode");
       statusBtn.classList.add("disconnected");
@@ -904,9 +904,10 @@ function updateSessionUI(sessionInfo = null) {
 
 async function fetchEecsohSessionStatus() {
   if (isGitHubPages()) {
-    eecsohSessionConnected = false;
+    const isConn = Boolean(queueData?._dashboard?.authenticated || queueData?._dashboard?.connected);
+    eecsohSessionConnected = isConn;
     updateSessionUI();
-    return { connected: false, names_visible: true, uniqnames_visible: true };
+    return { connected: isConn, names_visible: true, uniqnames_visible: true };
   }
   try {
     const resp = await fetch("/api/session", { cache: "no-store" });
@@ -1425,6 +1426,10 @@ async function fetchQueue() {
     queueData = data;
     lastUpdated = new Date();
     errorEl.hidden = true;
+    if (data?._dashboard?.authenticated || data?._dashboard?.connected) {
+      eecsohSessionConnected = true;
+      updateSessionUI();
+    }
     render(queueData);
   } catch (err) {
     if (queueData) {

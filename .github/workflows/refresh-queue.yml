@@ -18,28 +18,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch live queue
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Fetch live queue snapshot
+        env:
+          EECSOH_COOKIE: ${{ secrets.EECSOH_COOKIE }}
         run: |
-          URL="https://eecsoh.eecs.umich.edu/api/queues/1xHcWfn2KW5HHly5Y3rLA2g5kW2"
-          TMP="queue-snapshot.json.tmp"
-          ok=0
-
-          for attempt in 1 2 3 4 5; do
-            echo "Fetch attempt ${attempt}…"
-            if curl --connect-timeout 15 --max-time 40 -fsSL "$URL" -o "$TMP" \
-              && python3 -c 'import json,sys; d=json.load(open("queue-snapshot.json.tmp")); assert isinstance(d, dict) and "queue" in d'; then
-              mv "$TMP" queue-snapshot.json
-              ok=1
-              echo "Fetched queue on attempt ${attempt}"
-              break
-            fi
-            rm -f "$TMP"
-            sleep $((attempt * 4))
-          done
-
-          if [ "$ok" -ne 1 ]; then
-            echo "::warning::Could not reach eecsoh after retries; keeping previous snapshot"
-          fi
+          python3 server.py --snapshot
 
       - name: Commit snapshot if changed
         run: |
