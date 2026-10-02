@@ -214,6 +214,9 @@
           <button type="button" class="modal-close" data-close-modal="eecsoh-session-modal" aria-label="Close">×</button>
         </div>
         <div class="modal-body">
+          <div id="eecsoh-modal-gh-warning" class="session-alert" hidden style="margin-bottom: 1rem; color: #ffb74d;">
+            <span>ℹ️ <strong>GitHub Pages is a static view.</strong> Live staff session cookie proxying runs on your local server. To view live student names with your staff cookie, run <code>./start.sh</code> and open <a href="http://127.0.0.1:8080" target="_blank" style="color: #fff; text-decoration: underline;">http://127.0.0.1:8080</a>.</span>
+          </div>
           <p class="modal-note">
             Browsers protect eecsoh cookies with HttpOnly. To connect, open eecsoh as staff,
             copy your <code>session</code> cookie from DevTools, and paste it below.

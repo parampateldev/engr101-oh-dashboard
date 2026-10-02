@@ -921,15 +921,25 @@ function updateSessionUI(sessionInfo = null) {
   const statusBtn = document.getElementById("eecsoh-status-btn");
   const statusText = document.getElementById("eecsoh-status-text");
   const alertEl = document.getElementById("session-alert");
+  const ghModalWarning = document.getElementById("eecsoh-modal-gh-warning");
+
+  if (ghModalWarning) {
+    ghModalWarning.hidden = !isGitHubPages();
+  }
 
   if (statusBtn && statusText) {
-    if (eecsohSessionConnected) {
-      statusBtn.classList.remove("disconnected");
+    if (isGitHubPages()) {
+      statusBtn.classList.remove("connected", "disconnected");
+      statusBtn.classList.add("gh-pages-mode");
+      statusText.textContent = "Staff mode: localhost:8080";
+      statusBtn.title = "GitHub Pages is a static view. For live staff session and names, run ./start.sh and open http://localhost:8080.";
+    } else if (eecsohSessionConnected) {
+      statusBtn.classList.remove("disconnected", "gh-pages-mode");
       statusBtn.classList.add("connected");
       statusText.textContent = "eecsoh connected";
       statusBtn.title = "Staff session active. Student identities are visible. Click to manage.";
     } else {
-      statusBtn.classList.remove("connected");
+      statusBtn.classList.remove("connected", "gh-pages-mode");
       statusBtn.classList.add("disconnected");
       statusText.textContent = "Connect eecsoh";
       statusBtn.title = "Click to connect your staff eecsoh session so student names appear.";
@@ -988,6 +998,12 @@ async function fetchEecsohSessionStatus() {
 }
 
 async function saveEecsohSession(cookie) {
+  if (isGitHubPages()) {
+    throw new Error(
+      "GitHub Pages is a static site without a backend server to proxy cookies to EECS OH. " +
+      "To use your staff session, run the dashboard locally at http://localhost:8080 (via ./start.sh)."
+    );
+  }
   const resp = await fetch("/api/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

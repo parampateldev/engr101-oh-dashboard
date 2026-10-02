@@ -501,6 +501,15 @@ h1 {
   background: #ff9800;
 }
 
+.session-status-btn.gh-pages-mode {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--muted);
+}
+
+.session-status-btn.gh-pages-mode .status-dot {
+  background: var(--muted);
+}
+
 .preview-btn {
   border-radius: 999px;
   padding: 0.35rem 0.75rem;
